@@ -280,17 +280,6 @@ export default function HomePage() {
               套用分類
             </Button>
             <p className="text-sm text-ink/65">共 {catalogBooks.length} 本</p>
-            <div className="grid grid-cols-3 items-center gap-2">
-              <Button variant="secondary" disabled={catalogPage <= 1} onClick={() => setCatalogPage((page) => page - 1)}>
-                上一頁
-              </Button>
-              <p className="text-center text-sm font-semibold text-ink/65">
-                {catalogPage} / {totalCatalogPages}
-              </p>
-              <Button variant="secondary" disabled={catalogPage >= totalCatalogPages} onClick={() => setCatalogPage((page) => page + 1)}>
-                下一頁
-              </Button>
-            </div>
           </div>
 
           <div className="grid gap-3">
@@ -320,6 +309,17 @@ export default function HomePage() {
                 目前沒有符合條件的書籍。
               </div>
             )}
+          </div>
+          <div className="grid grid-cols-3 items-center gap-2">
+            <Button variant="secondary" disabled={catalogPage <= 1} onClick={() => setCatalogPage((page) => page - 1)}>
+              上一頁
+            </Button>
+            <p className="text-center text-sm font-semibold text-ink/65">
+              {catalogPage} / {totalCatalogPages}
+            </p>
+            <Button variant="secondary" disabled={catalogPage >= totalCatalogPages} onClick={() => setCatalogPage((page) => page + 1)}>
+              下一頁
+            </Button>
           </div>
         </section>
       ) : tab === "borrow" ? (
@@ -352,17 +352,6 @@ export default function HomePage() {
               套用分類
             </Button>
             <p className="text-sm text-ink/65">已選 {selectedBookIds.length}/3 本</p>
-            <div className="grid grid-cols-3 items-center gap-2">
-              <Button variant="secondary" disabled={borrowPage <= 1} onClick={() => setBorrowPage((page) => page - 1)}>
-                上一頁
-              </Button>
-              <p className="text-center text-sm font-semibold text-ink/65">
-                {borrowPage} / {totalBorrowPages}
-              </p>
-              <Button variant="secondary" disabled={borrowPage >= totalBorrowPages} onClick={() => setBorrowPage((page) => page + 1)}>
-                下一頁
-              </Button>
-            </div>
           </div>
 
           <div className="mx-auto w-full max-w-3xl md:fixed md:bottom-auto md:right-5 md:top-24 md:z-20 md:w-72">
@@ -438,6 +427,17 @@ export default function HomePage() {
                 {expandedBookIds.includes(book.id) && bookDetails(book)}
               </button>
             ))}
+          </div>
+          <div className="grid grid-cols-3 items-center gap-2">
+            <Button variant="secondary" disabled={borrowPage <= 1} onClick={() => setBorrowPage((page) => page - 1)}>
+              上一頁
+            </Button>
+            <p className="text-center text-sm font-semibold text-ink/65">
+              {borrowPage} / {totalBorrowPages}
+            </p>
+            <Button variant="secondary" disabled={borrowPage >= totalBorrowPages} onClick={() => setBorrowPage((page) => page + 1)}>
+              下一頁
+            </Button>
           </div>
         </section>
       ) : tab === "return" ? (
