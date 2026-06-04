@@ -34,7 +34,10 @@ function normalizeExcelDate(value: RawBookRow["published_date"]) {
     const day = String(parsed.d).padStart(2, "0");
     return `${parsed.y}-${month}-${day}`;
   }
-  return String(value).trim() || null;
+  const text = String(value).trim();
+  const match = text.match(/^(\d{4})[/-](\d{1,2})[/-](\d{1,2})$/);
+  if (match) return `${match[1]}-${match[2].padStart(2, "0")}-${match[3].padStart(2, "0")}`;
+  return text || null;
 }
 
 function hasStageMark(value: unknown) {
@@ -104,7 +107,7 @@ export async function POST(request: NextRequest) {
     if (!(file instanceof File)) return badRequest("請選擇 Excel 檔案。");
 
     const buffer = await file.arrayBuffer();
-    const workbook = XLSX.read(buffer);
+    const workbook = XLSX.read(buffer, { cellDates: true });
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
     const rows = XLSX.utils.sheet_to_json<RawBookRow>(sheet, { defval: "" });
 
