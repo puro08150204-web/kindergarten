@@ -1,6 +1,6 @@
 "use client";
 
-import { BookOpen, Check, ClipboardList, RotateCcw, Search } from "lucide-react";
+import { BookOpen, Check, ChevronDown, ClipboardList, RotateCcw, Search } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { Badge, Button, Field, Notice, inputClass } from "@/components/ui";
@@ -21,6 +21,7 @@ export default function HomePage() {
   const [stage, setStage] = useState("");
   const [catalogStage, setCatalogStage] = useState("");
   const [selectedBookIds, setSelectedBookIds] = useState<string[]>([]);
+  const [borrowPanelOpen, setBorrowPanelOpen] = useState(false);
   const [borrower, setBorrower] = useState({
     borrower_last_name: "",
     borrower_line_id: "",
@@ -89,6 +90,7 @@ export default function HomePage() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error);
       setSelectedBookIds([]);
+      setBorrowPanelOpen(false);
       setBorrower({ borrower_last_name: "", borrower_line_id: "", child_class: "" });
       await loadBooks();
       await loadPublicLoans();
@@ -188,7 +190,7 @@ export default function HomePage() {
       {message && <Notice tone={message.tone}>{message.text}</Notice>}
 
       {tab === "catalog" ? (
-        <section className="mt-4 grid gap-4">
+        <section className="mt-4 grid gap-4 pb-64">
           <div className="grid gap-3 rounded-md bg-white p-4 shadow-soft">
             <Field label="搜尋全部書籍">
               <div className="flex gap-2">
@@ -299,25 +301,43 @@ export default function HomePage() {
             ))}
           </div>
 
-          <div className="grid gap-3 rounded-md bg-white p-4 shadow-soft">
-            <h2 className="text-lg font-bold text-ink">借閱人資料</h2>
-            <Field label="姓氏">
-              <input className={inputClass} value={borrower.borrower_last_name} onChange={(event) => setBorrower({ ...borrower, borrower_last_name: event.target.value })} />
-            </Field>
-            <Field label="Line ID">
-              <input className={inputClass} value={borrower.borrower_line_id} onChange={(event) => setBorrower({ ...borrower, borrower_line_id: event.target.value })} />
-            </Field>
-            <Field label="最大小孩班級">
-              <input className={inputClass} value={borrower.child_class} onChange={(event) => setBorrower({ ...borrower, child_class: event.target.value })} />
-            </Field>
-            {selectedBooks.length > 0 && (
-              <div className="rounded-md bg-sky/[0.45] p-3 text-sm text-ink">
-                {selectedBooks.map((book) => book.title).join("、")}
-              </div>
-            )}
-            <Button disabled={loading || selectedBookIds.length === 0} onClick={submitBorrow}>
-              送出借閱
-            </Button>
+          <div className="fixed inset-x-0 bottom-0 z-20 mx-auto max-w-3xl px-4 pb-4 sm:px-6">
+            <div className="grid gap-3 rounded-md border border-ink/10 bg-white p-4 shadow-soft">
+              <button
+                className="flex items-center justify-between gap-3 text-left"
+                onClick={() => setBorrowPanelOpen((open) => !open)}
+              >
+                <span>
+                  <span className="block text-sm font-semibold text-leaf">借閱人資料</span>
+                  <span className="block text-base font-bold text-ink">已選 {selectedBookIds.length}/3 本</span>
+                </span>
+                <ChevronDown className={`text-ink transition ${borrowPanelOpen ? "rotate-180" : ""}`} size={20} />
+              </button>
+
+              {selectedBooks.length > 0 && (
+                <div className="rounded-md bg-sky/[0.45] p-3 text-sm text-ink">
+                  {selectedBooks.map((book) => book.title).join("、")}
+                </div>
+              )}
+
+              {borrowPanelOpen && (
+                <div className="grid gap-3">
+                  <Field label="姓氏">
+                    <input className={inputClass} value={borrower.borrower_last_name} onChange={(event) => setBorrower({ ...borrower, borrower_last_name: event.target.value })} />
+                  </Field>
+                  <Field label="Line ID">
+                    <input className={inputClass} value={borrower.borrower_line_id} onChange={(event) => setBorrower({ ...borrower, borrower_line_id: event.target.value })} />
+                  </Field>
+                  <Field label="最大小孩班級">
+                    <input className={inputClass} value={borrower.child_class} onChange={(event) => setBorrower({ ...borrower, child_class: event.target.value })} />
+                  </Field>
+                </div>
+              )}
+
+              <Button disabled={loading || selectedBookIds.length === 0} onClick={submitBorrow}>
+                送出借閱
+              </Button>
+            </div>
           </div>
         </section>
       ) : tab === "return" ? (
