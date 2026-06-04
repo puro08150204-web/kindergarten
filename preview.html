@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>幼兒園圖書借閱系統預覽</title>
+    <style>
+      :root {
+        --ink: #17202a;
+        --leaf: #2f7d59;
+        --honey: #f2b84b;
+        --sky: #d7ecf3;
+        --coral: #e76f51;
+        --paper: #ffffff;
+        --bg: #f8faf7;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        color: var(--ink);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: linear-gradient(180deg, rgba(215, 236, 243, .95), rgba(248, 250, 247, .9) 320px), var(--bg);
+      }
+      main { max-width: 720px; margin: 0 auto; padding: 20px 16px 48px; }
+      header { display: flex; justify-content: space-between; gap: 16px; align-items: center; margin-bottom: 18px; }
+      .eyebrow { color: var(--leaf); font-weight: 700; font-size: 14px; margin: 0 0 4px; }
+      h1 { margin: 0; font-size: 28px; line-height: 1.15; }
+      h2 { margin: 0 0 12px; font-size: 20px; }
+      h3 { margin: 0; font-size: 17px; }
+      .admin-link, button {
+        border: 0;
+        border-radius: 8px;
+        min-height: 44px;
+        padding: 10px 14px;
+        font-weight: 700;
+        font-size: 15px;
+      }
+      .admin-link { background: white; color: var(--ink); text-decoration: none; box-shadow: 0 12px 30px rgba(23,32,42,.08); }
+      .tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; background: white; padding: 4px; border-radius: 8px; box-shadow: 0 12px 30px rgba(23,32,42,.08); margin-bottom: 16px; }
+      .tabs button { background: transparent; color: var(--ink); }
+      .tabs button.active { background: var(--leaf); color: white; }
+      .card {
+        background: var(--paper);
+        border-radius: 8px;
+        padding: 16px;
+        box-shadow: 0 12px 30px rgba(23,32,42,.08);
+        margin-bottom: 12px;
+      }
+      label { display: grid; gap: 8px; font-size: 14px; font-weight: 700; margin-bottom: 12px; }
+      input, textarea, select {
+        width: 100%;
+        min-height: 44px;
+        border: 1px solid rgba(23,32,42,.15);
+        border-radius: 8px;
+        padding: 10px 12px;
+        font-size: 16px;
+        background: white;
+      }
+      .search { display: grid; grid-template-columns: 1fr 52px; gap: 8px; }
+      .primary { background: var(--leaf); color: white; width: 100%; }
+      .secondary { background: white; color: var(--ink); border: 1px solid rgba(23,32,42,.15); }
+      .book { border: 2px solid transparent; }
+      .book.selected { border-color: var(--leaf); box-shadow: 0 0 0 4px rgba(47,125,89,.15), 0 12px 30px rgba(23,32,42,.08); }
+      .row { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
+      .code { color: var(--leaf); font-size: 12px; font-weight: 800; margin: 0 0 4px; }
+      .muted { color: rgba(23,32,42,.65); font-size: 14px; margin: 6px 0 0; }
+      .keywords { color: rgba(23,32,42,.55); font-size: 14px; margin: 6px 0 0; }
+      .badge { display: inline-flex; border-radius: 999px; padding: 5px 10px; font-size: 12px; font-weight: 800; white-space: nowrap; }
+      .stage-bar { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px; }
+      .stage-chip { background: white; border: 1px solid rgba(23,32,42,.15); color: var(--ink); white-space: nowrap; }
+      .stage-chip.active { background: var(--leaf); border-color: var(--leaf); color: white; }
+      .warn { background: rgba(242,184,75,.25); color: var(--ink); }
+      .bad { background: rgba(231,111,81,.15); color: var(--coral); }
+      .good { background: rgba(47,125,89,.12); color: var(--leaf); }
+      .section-title { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+      .mini-tabs { display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px; background: rgba(23,32,42,.05); padding: 4px; border-radius: 8px; margin-top: 12px; }
+      .mini-tabs button { background: transparent; }
+      .mini-tabs button.active { background: white; color: var(--leaf); box-shadow: 0 2px 8px rgba(23,32,42,.08); }
+      .notice { background: rgba(47,125,89,.12); color: var(--leaf); border-radius: 8px; padding: 12px; font-weight: 700; font-size: 14px; margin-bottom: 12px; }
+      .error { background: rgba(231,111,81,.15); color: var(--coral); border-radius: 8px; padding: 10px 12px; font-weight: 700; font-size: 14px; margin: 0 0 12px; }
+      .hidden { display: none; }
+      @media (min-width: 680px) {
+        main { padding-top: 28px; }
+        h1 { font-size: 32px; }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <div>
+          <p class="eyebrow">Kindergarten Library</p>
+          <h1>幼兒園圖書借閱</h1>
+        </div>
+        <a class="admin-link" href="#admin-login" onclick="showAdminLogin(event)">後台</a>
+      </header>
+
+      <div class="notice">展示模式：這頁不用 Supabase、不用啟動伺服器，只是先看系統長相。</div>
+
+      <nav class="tabs">
+        <button class="active" onclick="showTab('borrow', this)">借書</button>
+        <button onclick="showTab('return', this)">還書</button>
+        <button onclick="showTab('loans', this)">借出名單</button>
+      </nav>
+
+      <section id="borrow">
+        <div class="card">
+          <label>搜尋可借書籍
+            <div class="search">
+              <input placeholder="書名、索書編號、關鍵字" />
+              <button class="secondary">⌕</button>
+            </div>
+          </label>
+          <label>階段分類</label>
+          <div class="stage-bar">
+            <button class="stage-chip active">全部</button>
+            <button class="stage-chip">幼兒階段</button>
+            <button class="stage-chip">國小階段</button>
+            <button class="stage-chip">國高中階段</button>
+          </div>
+          <p class="muted">已選 1/3 本</p>
+        </div>
+
+        <article class="card book selected">
+          <div class="row">
+            <div>
+              <p class="code">A-001</p>
+              <h3>小熊上學去</h3>
+            </div>
+            <span class="badge good">已選</span>
+          </div>
+          <p><span class="badge">幼兒階段</span></p>
+          <p class="muted">林小安 · 親子森林</p>
+          <p class="keywords">情緒、上學、幼兒園</p>
+        </article>
+
+        <article class="card book">
+          <div class="row">
+            <div>
+              <p class="code">B-015</p>
+              <h3>今天誰來說故事</h3>
+            </div>
+            <span class="badge good">在架上</span>
+          </div>
+          <p><span class="badge">幼兒階段</span></p>
+          <p class="muted">王文心 · 小種子</p>
+          <p class="keywords">故事、分享、想像力</p>
+        </article>
+
+        <div class="card">
+          <h2>借閱人資料</h2>
+          <label>姓氏<input value="陳" /></label>
+          <label>Line ID<input value="chen_parent" /></label>
+          <label>最大小孩班級<input value="海豚班" /></label>
+          <button class="primary">送出借閱</button>
+        </div>
+      </section>
+
+      <section id="return" class="hidden">
+        <div class="card">
+          <label>Line ID<input placeholder="輸入 Line ID 查詢" /></label>
+          <button class="primary">查詢借閱中書籍</button>
+        </div>
+        <label class="card">
+          <span class="row">
+            <span>
+              <strong>月亮晚安</strong>
+              <span class="muted" style="display:block">到期日 2026/06/24</span>
+            </span>
+            <span class="badge warn">借閱中</span>
+          </span>
+        </label>
+        <button class="primary">歸還選取書籍</button>
+      </section>
+
+      <section id="loans" class="hidden">
+        <div class="card">
+          <div class="section-title">
+            <div>
+              <h2>公開借閱狀態</h2>
+              <p class="muted">目前借出與逾期的書籍列表</p>
+            </div>
+          </div>
+          <div class="mini-tabs">
+            <button class="active">借出中</button>
+            <button>逾期</button>
+          </div>
+        </div>
+
+        <article class="card">
+          <div class="row">
+            <div>
+              <p class="code">D-006</p>
+              <h3>月亮晚安</h3>
+            </div>
+            <span class="badge warn">借閱中</span>
+          </div>
+          <p><span class="badge">幼兒階段</span></p>
+          <p class="muted">陳 家長 · 海豚班 · Line ID：chen_parent</p>
+          <p class="muted">借閱 2026/05/25 · 到期 2026/06/24</p>
+        </article>
+
+        <article class="card">
+          <div class="row">
+            <div>
+              <p class="code">E-018</p>
+              <h3>恐龍不生氣</h3>
+            </div>
+            <span class="badge bad">逾期</span>
+          </div>
+          <p><span class="badge">國高中階段</span></p>
+          <p class="muted">黃 家長 · 星星班 · Line ID：huang_line</p>
+          <p class="muted">借閱 2026/04/20 · 到期 2026/05/20</p>
+        </article>
+      </section>
+
+      <section id="admin-login" class="card hidden">
+        <h2>後台密碼</h2>
+        <p class="muted">輸入密碼後才能進入後台管理。</p>
+        <p id="admin-error" class="error hidden">密碼不正確。</p>
+        <label>密碼<input id="admin-password" type="password" inputmode="numeric" /></label>
+        <button class="primary" onclick="unlockAdmin()">進入後台</button>
+      </section>
+
+      <section id="admin" class="card hidden">
+        <h2>後台管理預覽</h2>
+        <label>階段分類
+          <select>
+            <option>幼兒階段</option>
+            <option selected>國小階段</option>
+            <option>國高中階段</option>
+          </select>
+        </label>
+        <label>書名<input value="我會自己穿鞋子" /></label>
+        <label>索書編號<input value="C-022" /></label>
+        <button class="primary">儲存書籍</button>
+      </section>
+    </main>
+    <script>
+      function showTab(id, button) {
+        for (const section of ["borrow", "return", "loans"]) {
+          document.getElementById(section).classList.toggle("hidden", section !== id);
+        }
+        document.getElementById("admin-login").classList.add("hidden");
+        document.getElementById("admin").classList.add("hidden");
+        for (const tab of document.querySelectorAll(".tabs button")) tab.classList.remove("active");
+        button.classList.add("active");
+      }
+      function showAdminLogin(event) {
+        event.preventDefault();
+        for (const section of ["borrow", "return", "loans", "admin"]) {
+          document.getElementById(section).classList.add("hidden");
+        }
+        document.getElementById("admin-login").classList.remove("hidden");
+        for (const tab of document.querySelectorAll(".tabs button")) tab.classList.remove("active");
+      }
+      function unlockAdmin() {
+        const input = document.getElementById("admin-password");
+        const error = document.getElementById("admin-error");
+        if (input.value === "2026") {
+          error.classList.add("hidden");
+          document.getElementById("admin-login").classList.add("hidden");
+          document.getElementById("admin").classList.remove("hidden");
+        } else {
+          error.classList.remove("hidden");
+        }
+      }
+    </script>
+  </body>
+</html>
