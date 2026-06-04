@@ -516,9 +516,6 @@ export default function HomePage() {
                   <Badge tone={loan.loan_status === "逾期" ? "bad" : "warn"}>{loan.loan_status}</Badge>
                 </div>
                 {loan.books?.stage && <Badge tone="neutral">{loan.books.stage}</Badge>}
-                <p className="text-sm text-ink/65">
-                  {loan.borrowers?.borrower_last_name} 家長 · {loan.borrowers?.child_class} · Line ID：{loan.borrowers?.borrower_line_id}
-                </p>
                 <p className="text-sm text-ink/60">
                   借閱 {formatTaiwanDate(loan.borrowed_at)} · 到期 {formatTaiwanDate(loan.due_at)}
                 </p>
