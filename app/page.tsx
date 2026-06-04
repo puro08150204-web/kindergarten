@@ -9,6 +9,13 @@ import type { Book, LoanWithComputedStatus } from "@/lib/types";
 
 type Message = { tone: "good" | "bad"; text: string } | null;
 const bookStages = ["幼兒階段", "國小階段", "國高中階段"];
+const pageSize = 20;
+
+type BorrowSuccess = {
+  dueAt: string;
+  lineId: string;
+  titles: string[];
+} | null;
 
 export default function HomePage() {
   const [tab, setTab] = useState<"catalog" | "borrow" | "return" | "publicLoans">("catalog");
@@ -20,6 +27,9 @@ export default function HomePage() {
   const [catalogQuery, setCatalogQuery] = useState("");
   const [stage, setStage] = useState("");
   const [catalogStage, setCatalogStage] = useState("");
+  const [catalogPage, setCatalogPage] = useState(1);
+  const [borrowPage, setBorrowPage] = useState(1);
+  const [expandedBookIds, setExpandedBookIds] = useState<string[]>([]);
   const [selectedBookIds, setSelectedBookIds] = useState<string[]>([]);
   const [borrowPanelOpen, setBorrowPanelOpen] = useState(false);
   const [borrower, setBorrower] = useState({
@@ -32,11 +42,22 @@ export default function HomePage() {
   const [selectedLoanIds, setSelectedLoanIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<Message>(null);
+  const [borrowSuccess, setBorrowSuccess] = useState<BorrowSuccess>(null);
 
   const selectedBooks = useMemo(
     () => books.filter((book) => selectedBookIds.includes(book.id)),
     [books, selectedBookIds]
   );
+  const paginatedCatalogBooks = useMemo(
+    () => catalogBooks.slice((catalogPage - 1) * pageSize, catalogPage * pageSize),
+    [catalogBooks, catalogPage]
+  );
+  const paginatedBorrowBooks = useMemo(
+    () => books.slice((borrowPage - 1) * pageSize, borrowPage * pageSize),
+    [books, borrowPage]
+  );
+  const totalCatalogPages = Math.max(1, Math.ceil(catalogBooks.length / pageSize));
+  const totalBorrowPages = Math.max(1, Math.ceil(books.length / pageSize));
 
   async function loadBooks(nextQuery = query) {
     const params = new URLSearchParams({ status: "在架上" });
@@ -45,6 +66,7 @@ export default function HomePage() {
     const response = await fetch(`/api/books?${params.toString()}`);
     const data = await response.json();
     setBooks(data.books ?? []);
+    setBorrowPage(1);
   }
 
   async function loadCatalogBooks(nextQuery = catalogQuery) {
@@ -54,6 +76,7 @@ export default function HomePage() {
     const response = await fetch(`/api/books?${params.toString()}`);
     const data = await response.json();
     setCatalogBooks(data.books ?? []);
+    setCatalogPage(1);
   }
 
   async function loadPublicLoans(mode = publicLoanMode) {
@@ -78,9 +101,32 @@ export default function HomePage() {
     });
   }
 
+  function toggleBookDetails(id: string) {
+    setExpandedBookIds((current) =>
+      current.includes(id) ? current.filter((bookId) => bookId !== id) : [...current, id]
+    );
+  }
+
+  function bookDetails(book: Book) {
+    return (
+      <div className="grid gap-1 rounded-md bg-ink/5 p-3 text-sm text-ink/70">
+        {book.publisher && <p>出版社：{book.publisher}</p>}
+        {book.published_date && <p>出版日期：{formatTaiwanDate(book.published_date)}</p>}
+        {book.author && <p>作者：{book.author}</p>}
+        {book.translator && <p>譯者：{book.translator}</p>}
+        {book.keywords && <p>關鍵字：{book.keywords}</p>}
+      </div>
+    );
+  }
+
   async function submitBorrow() {
+    if (selectedBooks.length === 0) return;
+    const confirmBorrow = window.confirm(`你要借這 ${selectedBooks.length} 本書嗎？\n\n${selectedBooks.map((book) => book.title).join("\n")}`);
+    if (!confirmBorrow) return;
+
     setLoading(true);
     setMessage(null);
+    setBorrowSuccess(null);
     try {
       const response = await fetch("/api/borrow", {
         method: "POST",
@@ -89,12 +135,17 @@ export default function HomePage() {
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error);
+      setBorrowSuccess({
+        dueAt: data.loans?.[0]?.due_at ?? new Date().toISOString(),
+        lineId: borrower.borrower_line_id,
+        titles: selectedBooks.map((book) => book.title)
+      });
       setSelectedBookIds([]);
       setBorrowPanelOpen(false);
       setBorrower({ borrower_last_name: "", borrower_line_id: "", child_class: "" });
       await loadBooks();
       await loadPublicLoans();
-      setMessage({ tone: "good", text: "借閱完成，系統已記錄到期日為 30 天後。" });
+      setMessage({ tone: "good", text: "借閱成功。" });
     } catch (error) {
       setMessage({ tone: "bad", text: error instanceof Error ? error.message : "借閱失敗。" });
     } finally {
@@ -174,7 +225,7 @@ export default function HomePage() {
           className={`tap rounded-md text-sm font-semibold ${tab === "return" ? "bg-leaf text-white" : "text-ink"}`}
           onClick={() => setTab("return")}
         >
-          還書
+          我的借閱
         </button>
         <button
           className={`tap rounded-md text-sm font-semibold ${tab === "publicLoans" ? "bg-leaf text-white" : "text-ink"}`}
@@ -188,6 +239,16 @@ export default function HomePage() {
       </div>
 
       {message && <Notice tone={message.tone}>{message.text}</Notice>}
+      {borrowSuccess && (
+        <div className="mt-3 grid gap-2 rounded-md bg-white p-4 shadow-soft">
+          <h2 className="text-lg font-bold text-leaf">借閱成功</h2>
+          <p className="text-sm text-ink/70">Line ID：{borrowSuccess.lineId}</p>
+          <p className="text-sm text-ink/70">到期日：{formatTaiwanDate(borrowSuccess.dueAt)}</p>
+          <div className="rounded-md bg-sky/[0.45] p-3 text-sm text-ink">
+            {borrowSuccess.titles.join("、")}
+          </div>
+        </div>
+      )}
 
       {tab === "catalog" ? (
         <section className="mt-4 grid gap-4 pb-64">
@@ -222,7 +283,7 @@ export default function HomePage() {
           </div>
 
           <div className="grid gap-3">
-            {catalogBooks.map((book) => (
+            {paginatedCatalogBooks.map((book) => (
               <article key={book.id} className="grid gap-2 rounded-md bg-white p-4 shadow-soft">
                 <div className="flex items-start justify-between gap-3">
                   <div>
@@ -237,6 +298,10 @@ export default function HomePage() {
                 </div>
                 <p className="text-sm text-ink/65">{[book.author, book.publisher].filter(Boolean).join(" · ")}</p>
                 {book.keywords && <p className="text-sm text-ink/55">{book.keywords}</p>}
+                <button className="text-left text-sm font-semibold text-leaf" onClick={() => toggleBookDetails(book.id)}>
+                  {expandedBookIds.includes(book.id) ? "收合詳細資料" : "詳細資料"}
+                </button>
+                {expandedBookIds.includes(book.id) && bookDetails(book)}
               </article>
             ))}
             {catalogBooks.length === 0 && (
@@ -244,6 +309,17 @@ export default function HomePage() {
                 目前沒有符合條件的書籍。
               </div>
             )}
+          </div>
+          <div className="grid grid-cols-3 items-center gap-2">
+            <Button variant="secondary" disabled={catalogPage <= 1} onClick={() => setCatalogPage((page) => page - 1)}>
+              上一頁
+            </Button>
+            <p className="text-center text-sm font-semibold text-ink/65">
+              {catalogPage} / {totalCatalogPages}
+            </p>
+            <Button variant="secondary" disabled={catalogPage >= totalCatalogPages} onClick={() => setCatalogPage((page) => page + 1)}>
+              下一頁
+            </Button>
           </div>
         </section>
       ) : tab === "borrow" ? (
@@ -279,7 +355,7 @@ export default function HomePage() {
           </div>
 
           <div className="grid gap-3">
-            {books.map((book) => (
+            {paginatedBorrowBooks.map((book) => (
               <button
                 key={book.id}
                 className={`grid gap-2 rounded-md border bg-white p-4 text-left shadow-soft transition ${
@@ -297,8 +373,29 @@ export default function HomePage() {
                 {book.stage && <Badge tone="neutral">{book.stage}</Badge>}
                 <p className="text-sm text-ink/65">{[book.author, book.publisher].filter(Boolean).join(" · ")}</p>
                 {book.keywords && <p className="text-sm text-ink/55">{book.keywords}</p>}
+                <span
+                  className="text-sm font-semibold text-leaf"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    toggleBookDetails(book.id);
+                  }}
+                >
+                  {expandedBookIds.includes(book.id) ? "收合詳細資料" : "詳細資料"}
+                </span>
+                {expandedBookIds.includes(book.id) && bookDetails(book)}
               </button>
             ))}
+          </div>
+          <div className="grid grid-cols-3 items-center gap-2">
+            <Button variant="secondary" disabled={borrowPage <= 1} onClick={() => setBorrowPage((page) => page - 1)}>
+              上一頁
+            </Button>
+            <p className="text-center text-sm font-semibold text-ink/65">
+              {borrowPage} / {totalBorrowPages}
+            </p>
+            <Button variant="secondary" disabled={borrowPage >= totalBorrowPages} onClick={() => setBorrowPage((page) => page + 1)}>
+              下一頁
+            </Button>
           </div>
 
           <div className="fixed inset-x-0 bottom-0 z-20 mx-auto max-w-3xl px-4 pb-4 sm:px-6">
@@ -308,7 +405,7 @@ export default function HomePage() {
                 onClick={() => setBorrowPanelOpen((open) => !open)}
               >
                 <span>
-                  <span className="block text-sm font-semibold text-leaf">借閱人資料</span>
+                  <span className="block text-sm font-semibold text-leaf">借閱人資料 <span className="text-coral">請填寫</span></span>
                   <span className="block text-base font-bold text-ink">已選 {selectedBookIds.length}/3 本</span>
                 </span>
                 <ChevronDown className={`text-ink transition ${borrowPanelOpen ? "rotate-180" : ""}`} size={20} />
@@ -347,7 +444,7 @@ export default function HomePage() {
               <input className={inputClass} value={returnLineId} onChange={(event) => setReturnLineId(event.target.value)} />
             </Field>
             <Button disabled={loading} onClick={searchReturns}>
-              查詢借閱中書籍
+              查詢我的借閱
             </Button>
           </div>
 

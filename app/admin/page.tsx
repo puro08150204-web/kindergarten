@@ -1,8 +1,8 @@
 "use client";
 
-import { Edit3, FileUp, Plus, RotateCcw, Save, Search, Trash2 } from "lucide-react";
+import { Download, Edit3, FileUp, LogOut, Plus, RotateCcw, Save, Search, Trash2 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Badge, Button, Field, Notice, inputClass } from "@/components/ui";
 import { formatTaiwanDate, toDateInputValue } from "@/lib/dates";
 import type { Book, LoanWithComputedStatus } from "@/lib/types";
@@ -19,6 +19,7 @@ const emptyBook = {
   keywords: ""
 };
 const bookStages = ["幼兒階段", "國小階段", "國高中階段"];
+const pageSize = 20;
 
 type BookForm = typeof emptyBook;
 type Message = { tone: "good" | "bad"; text: string } | null;
@@ -27,18 +28,30 @@ export default function AdminPage() {
   const [books, setBooks] = useState<Book[]>([]);
   const [loans, setLoans] = useState<LoanWithComputedStatus[]>([]);
   const [query, setQuery] = useState("");
+  const [bookStatusFilter, setBookStatusFilter] = useState("");
+  const [bookStageFilter, setBookStageFilter] = useState("");
+  const [bookPage, setBookPage] = useState(1);
   const [loanMode, setLoanMode] = useState<"active" | "overdue" | "all">("active");
   const [form, setForm] = useState<BookForm>(emptyBook);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [message, setMessage] = useState<Message>(null);
   const [loading, setLoading] = useState(false);
 
+  const paginatedBooks = useMemo(
+    () => books.slice((bookPage - 1) * pageSize, bookPage * pageSize),
+    [bookPage, books]
+  );
+  const totalBookPages = Math.max(1, Math.ceil(books.length / pageSize));
+
   async function loadBooks(nextQuery = query) {
     const params = new URLSearchParams();
     if (nextQuery.trim()) params.set("q", nextQuery.trim());
+    if (bookStatusFilter) params.set("status", bookStatusFilter);
+    if (bookStageFilter) params.set("stage", bookStageFilter);
     const response = await fetch(`/api/books?${params.toString()}`);
     const data = await response.json();
     setBooks(data.books ?? []);
+    setBookPage(1);
   }
 
   async function loadLoans(mode = loanMode) {
@@ -120,12 +133,42 @@ export default function AdminPage() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error);
       await loadBooks();
-      setMessage({ tone: "good", text: `已匯入 ${data.imported} 筆書籍。` });
+      setMessage({ tone: "good", text: `已匯入 ${data.imported} 筆書籍：新增 ${data.created ?? 0} 筆，更新 ${data.updated ?? 0} 筆。` });
     } catch (error) {
       setMessage({ tone: "bad", text: error instanceof Error ? error.message : "匯入失敗。" });
     } finally {
       setLoading(false);
     }
+  }
+
+  async function logout() {
+    await fetch("/api/admin/logout", { method: "POST" });
+    window.location.href = "/admin/login";
+  }
+
+  function exportLoansCsv() {
+    const headers = ["狀態", "索書編號", "書名", "姓氏", "班級", "Line ID", "借閱日", "到期日", "歸還日"];
+    const rows = loans.map((loan) => [
+      loan.loan_status,
+      loan.books?.book_code ?? "",
+      loan.books?.title ?? "",
+      loan.borrowers?.borrower_last_name ?? "",
+      loan.borrowers?.child_class ?? "",
+      loan.borrowers?.borrower_line_id ?? "",
+      formatTaiwanDate(loan.borrowed_at),
+      formatTaiwanDate(loan.due_at),
+      formatTaiwanDate(loan.returned_at)
+    ]);
+    const csv = [headers, ...rows]
+      .map((row) => row.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(","))
+      .join("\n");
+    const blob = new Blob([`\uFEFF${csv}`], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `library-loans-${loanMode}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
   }
 
   async function returnLoan(id: string) {
@@ -158,6 +201,10 @@ export default function AdminPage() {
         <Link className="rounded-md bg-white px-3 py-2 text-sm font-semibold text-ink shadow-soft" href="/">
           家長端
         </Link>
+        <Button variant="secondary" onClick={logout}>
+          <LogOut size={16} />
+          登出
+        </Button>
       </header>
 
       {message && <Notice tone={message.tone}>{message.text}</Notice>}
@@ -242,8 +289,26 @@ export default function AdminPage() {
                 <Search size={18} />
               </Button>
             </div>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <select className={inputClass} value={bookStatusFilter} onChange={(event) => setBookStatusFilter(event.target.value)}>
+                <option value="">全部書況</option>
+                <option value="在架上">在架上</option>
+                <option value="已借出">已借出</option>
+              </select>
+              <select className={inputClass} value={bookStageFilter} onChange={(event) => setBookStageFilter(event.target.value)}>
+                <option value="">全部階段</option>
+                {bookStages.map((stage) => (
+                  <option key={stage} value={stage}>
+                    {stage}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <Button variant="secondary" onClick={() => loadBooks()}>
+              套用篩選
+            </Button>
             <div className="grid gap-2">
-              {books.map((book) => (
+              {paginatedBooks.map((book) => (
                 <article key={book.id} className="grid gap-3 rounded-md border border-ink/10 p-3 sm:grid-cols-[1fr_auto]">
                   <div className="grid gap-1">
                     <div className="flex flex-wrap items-center gap-2">
@@ -266,11 +331,26 @@ export default function AdminPage() {
                 </article>
               ))}
             </div>
+            <div className="grid grid-cols-3 items-center gap-2">
+              <Button variant="secondary" disabled={bookPage <= 1} onClick={() => setBookPage((page) => page - 1)}>
+                上一頁
+              </Button>
+              <p className="text-center text-sm font-semibold text-ink/65">
+                {bookPage} / {totalBookPages}
+              </p>
+              <Button variant="secondary" disabled={bookPage >= totalBookPages} onClick={() => setBookPage((page) => page + 1)}>
+                下一頁
+              </Button>
+            </div>
           </div>
 
           <div className="grid gap-3 rounded-md bg-white p-4 shadow-soft">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h2 className="text-lg font-bold text-ink">借閱紀錄</h2>
+              <Button variant="secondary" onClick={exportLoansCsv}>
+                <Download size={16} />
+                匯出
+              </Button>
               <div className="grid grid-cols-3 rounded-md bg-ink/5 p-1 text-sm font-semibold">
                 {(["active", "overdue", "all"] as const).map((mode) => (
                   <button

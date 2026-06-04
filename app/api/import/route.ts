@@ -133,13 +133,24 @@ export async function POST(request: NextRequest) {
     if (books.length === 0) return badRequest("Excel 沒有可匯入的資料，請確認欄位名稱。");
 
     const supabase = getAdminSupabase();
+    const bookCodes = books.map((book) => book.book_code);
+    const { data: existingBooks, error: existingError } = await supabase
+      .from("books")
+      .select("book_code")
+      .in("book_code", bookCodes);
+
+    if (existingError) throw existingError;
+    const existingCodes = new Set((existingBooks ?? []).map((book) => book.book_code));
+    const updated = books.filter((book) => existingCodes.has(book.book_code)).length;
+    const created = books.length - updated;
+
     const { data, error } = await supabase
       .from("books")
       .upsert(books, { onConflict: "book_code" })
       .select("id");
 
     if (error) throw error;
-    return NextResponse.json({ imported: data?.length ?? 0 });
+    return NextResponse.json({ imported: data?.length ?? 0, created, updated });
   } catch (error) {
     return serverError(error);
   }

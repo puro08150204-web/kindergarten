@@ -19,6 +19,10 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  if (pathname.startsWith("/api/admin") && !pathname.startsWith("/api/admin/login") && !pathname.startsWith("/api/admin/logout") && !hasAdminAccess(request)) {
+    return NextResponse.json({ error: "請先輸入後台密碼。" }, { status: 401 });
+  }
+
   const protectsBookMutation =
     pathname.startsWith("/api/import") ||
     (pathname.startsWith("/api/books") && request.method !== "GET");
@@ -31,5 +35,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/api/books/:path*", "/api/import/:path*", "/api/admin/login"]
+  matcher: ["/admin/:path*", "/api/admin/:path*", "/api/books/:path*", "/api/import/:path*"]
 };

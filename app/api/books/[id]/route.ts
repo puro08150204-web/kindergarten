@@ -43,6 +43,17 @@ export async function DELETE(_request: NextRequest, context: RouteContext) {
   try {
     const { id } = await context.params;
     const supabase = getAdminSupabase();
+    const { count, error: activeLoanError } = await supabase
+      .from("loans")
+      .select("id", { count: "exact", head: true })
+      .eq("book_id", id)
+      .is("returned_at", null);
+
+    if (activeLoanError) throw activeLoanError;
+    if ((count ?? 0) > 0) {
+      return badRequest("這本書目前借出中，請先完成還書再刪除。", 409);
+    }
+
     const { error } = await supabase.from("books").delete().eq("id", id);
     if (error) throw error;
     return NextResponse.json({ ok: true });
