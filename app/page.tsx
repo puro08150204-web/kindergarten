@@ -251,7 +251,7 @@ export default function HomePage() {
       )}
 
       {tab === "catalog" ? (
-        <section className="mt-4 grid gap-4 pb-96">
+        <section className="mt-4 grid gap-4 pb-96 md:pb-8">
           <div className="grid gap-3 rounded-md bg-white p-4 shadow-soft">
             <Field label="搜尋全部書籍">
               <div className="flex gap-2">
@@ -398,8 +398,8 @@ export default function HomePage() {
             </Button>
           </div>
 
-          <div className="fixed inset-x-0 bottom-0 z-20 mx-auto max-w-3xl px-4 pb-4 sm:px-6">
-            <div className="grid gap-3 rounded-md border border-leaf/25 bg-sky/[0.92] p-4 shadow-[0_-10px_30px_rgba(23,32,42,0.12)] backdrop-blur">
+          <div className="fixed inset-x-0 bottom-0 z-20 mx-auto max-w-3xl px-4 pb-4 sm:px-6 md:inset-x-auto md:bottom-auto md:right-5 md:top-24 md:w-80 md:px-0 md:pb-0">
+            <div className="grid gap-3 rounded-md border border-leaf/25 bg-sky/[0.92] p-4 shadow-[0_-10px_30px_rgba(23,32,42,0.12)] backdrop-blur md:shadow-soft">
               <button
                 className="flex items-center justify-between gap-3 text-left"
                 onClick={() => setBorrowPanelOpen((open) => !open)}
@@ -408,7 +408,10 @@ export default function HomePage() {
                   <span className="block text-sm font-semibold text-leaf">借閱人資料 <span className="text-coral">請填寫</span></span>
                   <span className="block text-base font-bold text-ink">已選 {selectedBookIds.length}/3 本</span>
                 </span>
-                <ChevronDown className={`text-ink transition ${borrowPanelOpen ? "rotate-180" : ""}`} size={20} />
+                <span className="inline-flex items-center gap-1 rounded-full bg-white/80 px-3 py-2 text-sm font-bold text-ink shadow-sm">
+                  {borrowPanelOpen ? "收合" : "填寫資料"}
+                  <ChevronDown className={`transition ${borrowPanelOpen ? "rotate-180" : ""}`} size={22} />
+                </span>
               </button>
 
               {selectedBooks.length > 0 && (
