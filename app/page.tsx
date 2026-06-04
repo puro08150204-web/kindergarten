@@ -251,7 +251,7 @@ export default function HomePage() {
       )}
 
       {tab === "catalog" ? (
-        <section className={`mt-4 grid gap-4 md:pb-8 ${borrowPanelOpen ? "pb-[42rem]" : "pb-[22rem]"}`}>
+        <section className="mt-4 grid gap-4 md:pb-8">
           <div className="grid gap-3 rounded-md bg-white p-4 shadow-soft">
             <Field label="搜尋全部書籍">
               <div className="flex gap-2">
@@ -365,40 +365,8 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="grid gap-3">
-            {paginatedBorrowBooks.map((book) => (
-              <button
-                key={book.id}
-                className={`grid gap-2 rounded-md border bg-white p-4 text-left shadow-soft transition ${
-                  selectedBookIds.includes(book.id) ? "border-leaf ring-4 ring-leaf/15" : "border-transparent"
-                }`}
-                onClick={() => toggleBook(book.id)}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-xs font-semibold text-leaf">{book.book_code}</p>
-                    <h2 className="text-base font-bold text-ink">{book.title}</h2>
-                  </div>
-                  {selectedBookIds.includes(book.id) ? <Check className="text-leaf" size={20} /> : <BookOpen size={20} />}
-                </div>
-                {book.stage && <Badge tone="neutral">{book.stage}</Badge>}
-                <p className="text-sm text-ink/65">{[book.author, book.publisher].filter(Boolean).join(" · ")}</p>
-                {book.keywords && <p className="text-sm text-ink/55">{book.keywords}</p>}
-                <span
-                  className="text-sm font-semibold text-leaf"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    toggleBookDetails(book.id);
-                  }}
-                >
-                  {expandedBookIds.includes(book.id) ? "收合詳細資料" : "詳細資料"}
-                </span>
-                {expandedBookIds.includes(book.id) && bookDetails(book)}
-              </button>
-            ))}
-          </div>
-          <div className="fixed inset-x-0 bottom-0 z-20 mx-auto max-w-3xl px-4 pb-4 sm:px-6 md:inset-x-auto md:bottom-auto md:right-5 md:top-24 md:w-72 md:px-0 md:pb-0">
-            <div className="grid gap-2 rounded-md border border-leaf/25 bg-sky/[0.92] p-3 shadow-[0_-10px_30px_rgba(23,32,42,0.12)] backdrop-blur md:gap-3 md:p-4 md:shadow-soft">
+          <div className="mx-auto w-full max-w-3xl md:fixed md:bottom-auto md:right-5 md:top-24 md:z-20 md:w-72">
+            <div className="grid gap-2 rounded-md border border-leaf/25 bg-sky/[0.92] p-3 shadow-soft md:gap-3 md:p-4">
               <button
                 className="flex items-center justify-between gap-3 text-left"
                 onClick={() => setBorrowPanelOpen((open) => !open)}
@@ -437,6 +405,39 @@ export default function HomePage() {
                 送出借閱
               </Button>
             </div>
+          </div>
+
+          <div className="grid gap-3">
+            {paginatedBorrowBooks.map((book) => (
+              <button
+                key={book.id}
+                className={`grid gap-2 rounded-md border bg-white p-4 text-left shadow-soft transition ${
+                  selectedBookIds.includes(book.id) ? "border-leaf ring-4 ring-leaf/15" : "border-transparent"
+                }`}
+                onClick={() => toggleBook(book.id)}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-semibold text-leaf">{book.book_code}</p>
+                    <h2 className="text-base font-bold text-ink">{book.title}</h2>
+                  </div>
+                  {selectedBookIds.includes(book.id) ? <Check className="text-leaf" size={20} /> : <BookOpen size={20} />}
+                </div>
+                {book.stage && <Badge tone="neutral">{book.stage}</Badge>}
+                <p className="text-sm text-ink/65">{[book.author, book.publisher].filter(Boolean).join(" · ")}</p>
+                {book.keywords && <p className="text-sm text-ink/55">{book.keywords}</p>}
+                <span
+                  className="text-sm font-semibold text-leaf"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    toggleBookDetails(book.id);
+                  }}
+                >
+                  {expandedBookIds.includes(book.id) ? "收合詳細資料" : "詳細資料"}
+                </span>
+                {expandedBookIds.includes(book.id) && bookDetails(book)}
+              </button>
+            ))}
           </div>
         </section>
       ) : tab === "return" ? (
