@@ -35,6 +35,7 @@ function normalizeExcelDate(value: RawBookRow["published_date"]) {
     return `${parsed.y}-${month}-${day}`;
   }
   const text = String(value).trim();
+  if (text.includes("--") || text.includes("??")) return null;
   const match = text.match(/^(\d{4})[/-](\d{1,2})[/-](\d{1,2})$/);
   if (match) return `${match[1]}-${match[2].padStart(2, "0")}-${match[3].padStart(2, "0")}`;
   return text || null;

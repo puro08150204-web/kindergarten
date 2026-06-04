@@ -33,6 +33,7 @@ function normalizeDate(value) {
     return `${parsed.y}-${String(parsed.m).padStart(2, "0")}-${String(parsed.d).padStart(2, "0")}`;
   }
   const text = String(value).trim();
+  if (text.includes("--") || text.includes("??")) return null;
   const match = text.match(/^(\d{4})[/-](\d{1,2})[/-](\d{1,2})$/);
   if (match) return `${match[1]}-${match[2].padStart(2, "0")}-${match[3].padStart(2, "0")}`;
   return text || null;

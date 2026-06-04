@@ -62,6 +62,11 @@ alter table public.books enable row level security;
 alter table public.borrowers enable row level security;
 alter table public.loans enable row level security;
 
+grant select, insert, update, delete on public.books to service_role;
+grant select, insert, update, delete on public.borrowers to service_role;
+grant select, insert, update, delete on public.loans to service_role;
+grant select on public.books to anon;
+
 create policy "Public can read books"
 on public.books for select
 to anon
