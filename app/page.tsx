@@ -11,12 +11,15 @@ type Message = { tone: "good" | "bad"; text: string } | null;
 const bookStages = ["幼兒階段", "國小階段", "國高中階段"];
 
 export default function HomePage() {
-  const [tab, setTab] = useState<"borrow" | "return" | "publicLoans">("borrow");
+  const [tab, setTab] = useState<"catalog" | "borrow" | "return" | "publicLoans">("catalog");
   const [books, setBooks] = useState<Book[]>([]);
+  const [catalogBooks, setCatalogBooks] = useState<Book[]>([]);
   const [publicLoans, setPublicLoans] = useState<LoanWithComputedStatus[]>([]);
   const [publicLoanMode, setPublicLoanMode] = useState<"active" | "overdue">("active");
   const [query, setQuery] = useState("");
+  const [catalogQuery, setCatalogQuery] = useState("");
   const [stage, setStage] = useState("");
+  const [catalogStage, setCatalogStage] = useState("");
   const [selectedBookIds, setSelectedBookIds] = useState<string[]>([]);
   const [borrower, setBorrower] = useState({
     borrower_last_name: "",
@@ -43,6 +46,15 @@ export default function HomePage() {
     setBooks(data.books ?? []);
   }
 
+  async function loadCatalogBooks(nextQuery = catalogQuery) {
+    const params = new URLSearchParams();
+    if (nextQuery.trim()) params.set("q", nextQuery.trim());
+    if (catalogStage) params.set("stage", catalogStage);
+    const response = await fetch(`/api/books?${params.toString()}`);
+    const data = await response.json();
+    setCatalogBooks(data.books ?? []);
+  }
+
   async function loadPublicLoans(mode = publicLoanMode) {
     const response = await fetch(`/api/loans?mode=${mode}`);
     const data = await response.json();
@@ -50,6 +62,7 @@ export default function HomePage() {
   }
 
   useEffect(() => {
+    loadCatalogBooks("");
     loadBooks("");
     loadPublicLoans("active");
     // Initial load only.
@@ -139,7 +152,16 @@ export default function HomePage() {
         </Link>
       </header>
 
-      <div className="mb-4 grid grid-cols-3 rounded-md bg-white p-1 shadow-soft">
+      <div className="mb-4 grid grid-cols-4 rounded-md bg-white p-1 shadow-soft">
+        <button
+          className={`tap rounded-md text-sm font-semibold ${tab === "catalog" ? "bg-leaf text-white" : "text-ink"}`}
+          onClick={() => {
+            setTab("catalog");
+            loadCatalogBooks();
+          }}
+        >
+          全部書籍
+        </button>
         <button
           className={`tap rounded-md text-sm font-semibold ${tab === "borrow" ? "bg-leaf text-white" : "text-ink"}`}
           onClick={() => setTab("borrow")}
@@ -165,7 +187,64 @@ export default function HomePage() {
 
       {message && <Notice tone={message.tone}>{message.text}</Notice>}
 
-      {tab === "borrow" ? (
+      {tab === "catalog" ? (
+        <section className="mt-4 grid gap-4">
+          <div className="grid gap-3 rounded-md bg-white p-4 shadow-soft">
+            <Field label="搜尋全部書籍">
+              <div className="flex gap-2">
+                <input
+                  className={inputClass}
+                  value={catalogQuery}
+                  placeholder="書名、索書編號、關鍵字"
+                  onChange={(event) => setCatalogQuery(event.target.value)}
+                />
+                <Button variant="secondary" aria-label="搜尋" onClick={() => loadCatalogBooks()}>
+                  <Search size={18} />
+                </Button>
+              </div>
+            </Field>
+            <Field label="階段分類">
+              <select className={inputClass} value={catalogStage} onChange={(event) => setCatalogStage(event.target.value)}>
+                <option value="">全部階段</option>
+                {bookStages.map((bookStage) => (
+                  <option key={bookStage} value={bookStage}>
+                    {bookStage}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Button variant="secondary" onClick={() => loadCatalogBooks()}>
+              套用分類
+            </Button>
+            <p className="text-sm text-ink/65">共 {catalogBooks.length} 本</p>
+          </div>
+
+          <div className="grid gap-3">
+            {catalogBooks.map((book) => (
+              <article key={book.id} className="grid gap-2 rounded-md bg-white p-4 shadow-soft">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-semibold text-leaf">{book.book_code}</p>
+                    <h2 className="text-base font-bold text-ink">{book.title}</h2>
+                  </div>
+                  <Badge tone={book.status === "在架上" ? "good" : "warn"}>{book.status}</Badge>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {book.stage && <Badge tone="neutral">{book.stage}</Badge>}
+                  {book.status === "在架上" && <Badge tone="good">可借閱</Badge>}
+                </div>
+                <p className="text-sm text-ink/65">{[book.author, book.publisher].filter(Boolean).join(" · ")}</p>
+                {book.keywords && <p className="text-sm text-ink/55">{book.keywords}</p>}
+              </article>
+            ))}
+            {catalogBooks.length === 0 && (
+              <div className="rounded-md bg-white p-4 text-center text-sm font-medium text-ink/65 shadow-soft">
+                目前沒有符合條件的書籍。
+              </div>
+            )}
+          </div>
+        </section>
+      ) : tab === "borrow" ? (
         <section className="mt-4 grid gap-4">
           <div className="grid gap-3 rounded-md bg-white p-4 shadow-soft">
             <Field label="搜尋可借書籍">
