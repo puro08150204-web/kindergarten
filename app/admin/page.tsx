@@ -162,9 +162,9 @@ export default function AdminPage() {
 
       {message && <Notice tone={message.tone}>{message.text}</Notice>}
 
-      <div className="mt-4 grid gap-4 lg:grid-cols-[360px_1fr]">
-        <section className="grid gap-4">
-          <div className="grid gap-3 rounded-md bg-white p-4 shadow-soft">
+      <div className="mt-4 grid items-start gap-4 lg:grid-cols-[300px_minmax(0,1fr)]">
+        <section className="grid content-start gap-4">
+          <div className="grid content-start gap-3 rounded-md bg-white p-4 shadow-soft">
             <h2 className="text-lg font-bold text-ink">{editingId ? "修改書籍" : "新增書籍"}</h2>
             <Field label="書況">
               <select className={inputClass} value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value })}>
@@ -220,7 +220,7 @@ export default function AdminPage() {
             </div>
           </div>
 
-          <div className="grid gap-3 rounded-md bg-white p-4 shadow-soft">
+          <div className="grid content-start gap-3 rounded-md bg-white p-4 shadow-soft">
             <h2 className="text-lg font-bold text-ink">批次匯入既有清單</h2>
             <label className="tap inline-flex cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed border-leaf/[0.45] bg-sky/[0.35] px-4 py-3 text-sm font-semibold text-ink">
               <FileUp size={18} />
@@ -230,8 +230,8 @@ export default function AdminPage() {
           </div>
         </section>
 
-        <section className="grid gap-4">
-          <div className="grid gap-3 rounded-md bg-white p-4 shadow-soft">
+        <section className="grid content-start gap-4">
+          <div className="grid content-start gap-3 rounded-md bg-white p-4 shadow-soft">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h2 className="text-lg font-bold text-ink">全部書籍</h2>
               <span className="text-sm text-ink/60">{books.length} 筆</span>
