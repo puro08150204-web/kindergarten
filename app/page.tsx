@@ -251,7 +251,7 @@ export default function HomePage() {
       )}
 
       {tab === "catalog" ? (
-        <section className={`mt-4 grid gap-4 md:pb-8 ${borrowPanelOpen ? "pb-[34rem]" : "pb-56"}`}>
+        <section className={`mt-4 grid gap-4 md:pb-8 ${borrowPanelOpen ? "pb-[30rem]" : "pb-44"}`}>
           <div className="grid gap-3 rounded-md bg-white p-4 shadow-soft">
             <Field label="搜尋全部書籍">
               <div className="flex gap-2">
@@ -352,6 +352,17 @@ export default function HomePage() {
               套用分類
             </Button>
             <p className="text-sm text-ink/65">已選 {selectedBookIds.length}/3 本</p>
+            <div className="grid grid-cols-3 items-center gap-2">
+              <Button variant="secondary" disabled={borrowPage <= 1} onClick={() => setBorrowPage((page) => page - 1)}>
+                上一頁
+              </Button>
+              <p className="text-center text-sm font-semibold text-ink/65">
+                {borrowPage} / {totalBorrowPages}
+              </p>
+              <Button variant="secondary" disabled={borrowPage >= totalBorrowPages} onClick={() => setBorrowPage((page) => page + 1)}>
+                下一頁
+              </Button>
+            </div>
           </div>
 
           <div className="grid gap-3">
@@ -386,19 +397,7 @@ export default function HomePage() {
               </button>
             ))}
           </div>
-          <div className="grid grid-cols-3 items-center gap-2">
-            <Button variant="secondary" disabled={borrowPage <= 1} onClick={() => setBorrowPage((page) => page - 1)}>
-              上一頁
-            </Button>
-            <p className="text-center text-sm font-semibold text-ink/65">
-              {borrowPage} / {totalBorrowPages}
-            </p>
-            <Button variant="secondary" disabled={borrowPage >= totalBorrowPages} onClick={() => setBorrowPage((page) => page + 1)}>
-              下一頁
-            </Button>
-          </div>
-
-          <div className="fixed inset-x-0 bottom-0 z-20 mx-auto max-w-3xl px-4 pb-4 sm:px-6 md:inset-x-auto md:bottom-auto md:right-5 md:top-24 md:w-80 md:px-0 md:pb-0">
+          <div className="fixed inset-x-0 bottom-0 z-20 mx-auto max-w-3xl px-4 pb-4 sm:px-6 md:inset-x-auto md:bottom-auto md:right-5 md:top-24 md:w-72 md:px-0 md:pb-0">
             <div className="grid gap-3 rounded-md border border-leaf/25 bg-sky/[0.92] p-4 shadow-[0_-10px_30px_rgba(23,32,42,0.12)] backdrop-blur md:shadow-soft">
               <button
                 className="flex items-center justify-between gap-3 text-left"
