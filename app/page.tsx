@@ -251,7 +251,7 @@ export default function HomePage() {
       )}
 
       {tab === "catalog" ? (
-        <section className="mt-4 grid gap-4 pb-64">
+        <section className="mt-4 grid gap-4 pb-96">
           <div className="grid gap-3 rounded-md bg-white p-4 shadow-soft">
             <Field label="搜尋全部書籍">
               <div className="flex gap-2">
@@ -310,7 +310,7 @@ export default function HomePage() {
               </div>
             )}
           </div>
-          <div className="grid grid-cols-3 items-center gap-2">
+          <div className="mb-8 grid grid-cols-3 items-center gap-2">
             <Button variant="secondary" disabled={catalogPage <= 1} onClick={() => setCatalogPage((page) => page - 1)}>
               上一頁
             </Button>
@@ -399,7 +399,7 @@ export default function HomePage() {
           </div>
 
           <div className="fixed inset-x-0 bottom-0 z-20 mx-auto max-w-3xl px-4 pb-4 sm:px-6">
-            <div className="grid gap-3 rounded-md border border-ink/10 bg-white p-4 shadow-soft">
+            <div className="grid gap-3 rounded-md border border-leaf/25 bg-sky/[0.92] p-4 shadow-[0_-10px_30px_rgba(23,32,42,0.12)] backdrop-blur">
               <button
                 className="flex items-center justify-between gap-3 text-left"
                 onClick={() => setBorrowPanelOpen((open) => !open)}
@@ -412,7 +412,7 @@ export default function HomePage() {
               </button>
 
               {selectedBooks.length > 0 && (
-                <div className="rounded-md bg-sky/[0.45] p-3 text-sm text-ink">
+                <div className="rounded-md bg-white/70 p-3 text-sm text-ink">
                   {selectedBooks.map((book) => book.title).join("、")}
                 </div>
               )}
