@@ -251,7 +251,7 @@ export default function HomePage() {
       )}
 
       {tab === "catalog" ? (
-        <section className="mt-4 grid gap-4 pb-96 md:pb-8">
+        <section className={`mt-4 grid gap-4 md:pb-8 ${borrowPanelOpen ? "pb-[34rem]" : "pb-56"}`}>
           <div className="grid gap-3 rounded-md bg-white p-4 shadow-soft">
             <Field label="搜尋全部書籍">
               <div className="flex gap-2">
@@ -310,7 +310,7 @@ export default function HomePage() {
               </div>
             )}
           </div>
-          <div className="mb-8 grid grid-cols-3 items-center gap-2">
+          <div className="mb-20 grid grid-cols-3 items-center gap-2 md:mb-0">
             <Button variant="secondary" disabled={catalogPage <= 1} onClick={() => setCatalogPage((page) => page - 1)}>
               上一頁
             </Button>
