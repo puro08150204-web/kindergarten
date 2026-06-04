@@ -50,6 +50,53 @@ function normalizeStage(row: RawBookRow) {
   return markedStage || null;
 }
 
+function normalizeStageLabel(value: unknown) {
+  const text = String(value || "").trim();
+  if (text.includes("幼兒") || text.includes("幼兒園")) return "幼兒階段";
+  if (text.includes("小學") || text.includes("國小")) return "國小階段";
+  if (text.includes("國高中") || text.includes("國中") || text.includes("高中")) return "國高中階段";
+  return text || null;
+}
+
+function parseSectionedRows(sheet: XLSX.WorkSheet) {
+  const rows = XLSX.utils.sheet_to_json<(string | number | Date)[]>(sheet, {
+    header: 1,
+    defval: ""
+  });
+  let currentStage: string | null = null;
+  const books = [];
+
+  for (const row of rows) {
+    const nonEmpty = row.filter((cell) => String(cell ?? "").trim());
+    if (nonEmpty.length === 0) continue;
+
+    if (nonEmpty.length === 1) {
+      currentStage = normalizeStageLabel(nonEmpty[0]);
+      continue;
+    }
+
+    const status = String(row[0] || "").trim();
+    const bookCode = String(row[1] || "").trim();
+    const title = String(row[2] || "").trim();
+
+    if (!bookCode || !title || status === "書況") continue;
+
+    books.push({
+      status: status || "在架上",
+      book_code: bookCode,
+      stage: currentStage,
+      title,
+      publisher: String(row[3] || "").trim() || null,
+      published_date: normalizeExcelDate(row[4]),
+      author: String(row[6] || "").trim() || null,
+      translator: String(row[7] || "").trim() || null,
+      keywords: String(row[8] || "").trim() || null
+    });
+  }
+
+  return books;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
@@ -61,7 +108,7 @@ export async function POST(request: NextRequest) {
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
     const rows = XLSX.utils.sheet_to_json<RawBookRow>(sheet, { defval: "" });
 
-    const books = rows
+    let books = rows
       .map((row) => ({
         status: String(row.status || "在架上").trim(),
         book_code: String(row.book_code || "").trim(),
@@ -74,6 +121,10 @@ export async function POST(request: NextRequest) {
         keywords: String(row.keywords || "").trim() || null
       }))
       .filter((book) => book.book_code && book.title);
+
+    if (books.length === 0) {
+      books = parseSectionedRows(sheet);
+    }
 
     if (books.length === 0) return badRequest("Excel 沒有可匯入的資料，請確認欄位名稱。");
 

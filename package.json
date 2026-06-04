@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "import:books": "node scripts/import-books-from-excel.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.4",

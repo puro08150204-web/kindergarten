@@ -1,6 +1,6 @@
 "use client";
 
-import { Edit3, Plus, RotateCcw, Save, Search, Trash2 } from "lucide-react";
+import { Edit3, FileUp, Plus, RotateCcw, Save, Search, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Badge, Button, Field, Notice, inputClass } from "@/components/ui";
@@ -109,6 +109,25 @@ export default function AdminPage() {
     }
   }
 
+  async function importExcel(file?: File) {
+    if (!file) return;
+    setLoading(true);
+    setMessage(null);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const response = await fetch("/api/import", { method: "POST", body: formData });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error);
+      await loadBooks();
+      setMessage({ tone: "good", text: `已匯入 ${data.imported} 筆書籍。` });
+    } catch (error) {
+      setMessage({ tone: "bad", text: error instanceof Error ? error.message : "匯入失敗。" });
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function returnLoan(id: string) {
     setLoading(true);
     setMessage(null);
@@ -199,6 +218,15 @@ export default function AdminPage() {
                 清除
               </Button>
             </div>
+          </div>
+
+          <div className="grid gap-3 rounded-md bg-white p-4 shadow-soft">
+            <h2 className="text-lg font-bold text-ink">批次匯入既有清單</h2>
+            <label className="tap inline-flex cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed border-leaf/[0.45] bg-sky/[0.35] px-4 py-3 text-sm font-semibold text-ink">
+              <FileUp size={18} />
+              選擇 Excel 檔
+              <input className="sr-only" type="file" accept=".xlsx,.xls" onChange={(event) => importExcel(event.target.files?.[0])} />
+            </label>
           </div>
         </section>
 
