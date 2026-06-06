@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
     const bookIds = Array.isArray(payload.book_ids) ? payload.book_ids.filter(Boolean) : [];
 
     if (!borrowerLastName || !borrowerLineId || !childClass) {
-      return badRequest("請填寫姓氏、Line ID 與最大小孩班級。");
+      return badRequest("請填寫姓名、Line ID 與最大小孩班級。");
     }
     if (bookIds.length === 0 || bookIds.length > 3) {
       return badRequest("一次需選擇 1 到 3 本書。");

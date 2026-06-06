@@ -378,7 +378,7 @@ export default function HomePage() {
 
               {borrowPanelOpen && (
                 <div className="grid gap-3">
-                  <Field label="姓氏">
+                  <Field label="姓名">
                     <input className={inputClass} value={borrower.borrower_last_name} onChange={(event) => setBorrower({ ...borrower, borrower_last_name: event.target.value })} />
                   </Field>
                   <Field label="Line ID">
@@ -447,7 +447,7 @@ export default function HomePage() {
               <input
                 className={inputClass}
                 value={returnBorrowerName}
-                placeholder="請輸入姓氏或姓名"
+                placeholder="請輸入姓名"
                 onChange={(event) => setReturnBorrowerName(event.target.value)}
               />
             </Field>

@@ -147,7 +147,7 @@ export default function AdminPage() {
   }
 
   function exportLoansCsv() {
-    const headers = ["狀態", "索書編號", "書名", "姓氏", "班級", "Line ID", "借閱日", "到期日", "歸還日"];
+    const headers = ["狀態", "索書編號", "書名", "姓名", "班級", "Line ID", "借閱日", "到期日", "歸還日"];
     const rows = loans.map((loan) => [
       loan.loan_status,
       loan.books?.book_code ?? "",
