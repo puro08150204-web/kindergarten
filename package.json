@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "fill:covers": "node scripts/fill-book-covers.mjs",
     "import:books": "node scripts/import-books-from-excel.mjs"
   },
   "dependencies": {

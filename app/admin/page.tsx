@@ -131,50 +131,6 @@ export default function AdminPage() {
     }
   }
 
-  async function autoFillCoversForPage() {
-    const targets = paginatedBooks.filter((book) => !book.cover_image_url);
-    if (targets.length === 0) {
-      setMessage({ tone: "good", text: "這一頁的書都有封面了。" });
-      return;
-    }
-
-    setLoading(true);
-    setMessage(null);
-    let found = 0;
-    let skipped = 0;
-
-    try {
-      for (const book of targets) {
-        const params = new URLSearchParams({ title: book.title });
-        if (book.author) params.set("author", book.author);
-        if (book.publisher) params.set("publisher", book.publisher);
-
-        const coverResponse = await fetch(`/api/books/cover-search?${params.toString()}`);
-        const coverData = await coverResponse.json();
-        if (!coverResponse.ok || !coverData.cover_image_url) {
-          skipped += 1;
-          continue;
-        }
-
-        const saveResponse = await fetch(`/api/books/${book.id}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ...book, cover_image_url: coverData.cover_image_url })
-        });
-
-        if (saveResponse.ok) found += 1;
-        else skipped += 1;
-      }
-
-      await loadBooks();
-      setMessage({ tone: "good", text: `本頁已自動補上 ${found} 張封面，${skipped} 本未找到。` });
-    } catch (error) {
-      setMessage({ tone: "bad", text: error instanceof Error ? error.message : "自動補封面失敗。" });
-    } finally {
-      setLoading(false);
-    }
-  }
-
   async function deleteBook(id: string) {
     if (!confirm("確定刪除這本書？")) return;
     setLoading(true);
@@ -396,9 +352,6 @@ export default function AdminPage() {
             </div>
             <Button variant="secondary" onClick={() => loadBooks()}>
               套用篩選
-            </Button>
-            <Button variant="secondary" disabled={loading} onClick={autoFillCoversForPage}>
-              自動補本頁封面
             </Button>
             <div className="grid gap-2">
               {paginatedBooks.map((book) => (
