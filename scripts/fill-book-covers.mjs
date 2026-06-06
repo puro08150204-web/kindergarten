@@ -18,22 +18,33 @@ function secureImageUrl(url) {
   return url.replace(/^http:\/\//, "https://");
 }
 
+function uniqueValues(values) {
+  return [...new Set(values.map((value) => value?.trim()).filter(Boolean))];
+}
+
+function buildQueries(book) {
+  const title = book.title;
+  const mainTitle = title.split(/[：:]/)[0]?.trim();
+  const compactTitle = title.replace(/[：:]/g, " ").replace(/\s+/g, " ").trim();
+
+  return uniqueValues([
+    title,
+    compactTitle,
+    mainTitle,
+    book.author ? `${title} ${book.author}` : undefined,
+    book.author && mainTitle ? `${mainTitle} ${book.author}` : undefined,
+    book.publisher ? `${title} ${book.publisher}` : undefined,
+    `intitle:${title}`,
+    mainTitle ? `intitle:${mainTitle}` : undefined
+  ]);
+}
+
 async function findCover(book) {
-  const attempts = [
-    { title: book.title, author: book.author, publisher: book.publisher },
-    { title: book.title, author: book.author },
-    { title: book.title }
-  ];
-
-  for (const attempt of attempts) {
-    const queryParts = [`intitle:${attempt.title}`];
-    if (attempt.author) queryParts.push(`inauthor:${attempt.author}`);
-    if (attempt.publisher) queryParts.push(`inpublisher:${attempt.publisher}`);
-
+  for (const query of buildQueries(book)) {
     const params = new URLSearchParams({
-      q: queryParts.join(" "),
+      q: query,
       printType: "books",
-      maxResults: "5",
+      maxResults: "10",
       projection: "lite"
     });
 
@@ -48,6 +59,21 @@ async function findCover(book) {
       .find(Boolean);
 
     if (cover) return cover;
+  }
+
+  const params = new URLSearchParams({
+    title: book.title,
+    limit: "10"
+  });
+  if (book.author) params.set("author", book.author);
+
+  const response = await fetch(`https://openlibrary.org/search.json?${params.toString()}`, {
+    headers: { Accept: "application/json" }
+  });
+  if (response.ok) {
+    const data = await response.json();
+    const coverId = (data.docs ?? []).find((item) => item.cover_i)?.cover_i;
+    if (coverId) return `https://covers.openlibrary.org/b/id/${coverId}-M.jpg`;
   }
 
   return null;

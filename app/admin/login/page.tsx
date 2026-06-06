@@ -1,6 +1,7 @@
 "use client";
 
 import { LockKeyhole } from "lucide-react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { Button, Field, Notice, inputClass } from "@/components/ui";
@@ -57,7 +58,12 @@ function AdminLoginForm() {
             onChange={(event) => setPassword(event.target.value)}
           />
         </Field>
-        <Button disabled={loading || !password}>進入後台</Button>
+        <div className="grid gap-2">
+          <Button disabled={loading || !password}>進入後台</Button>
+          <Link className="tap inline-flex min-h-11 items-center justify-center rounded-md border border-ink/10 bg-white px-4 py-2 text-sm font-semibold text-ink shadow-sm" href="/">
+            回前台
+          </Link>
+        </div>
       </form>
     </main>
   );
