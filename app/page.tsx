@@ -37,7 +37,7 @@ export default function HomePage() {
     borrower_line_id: "",
     child_class: ""
   });
-  const [returnLineId, setReturnLineId] = useState("");
+  const [returnBorrowerName, setReturnBorrowerName] = useState("");
   const [returnLoans, setReturnLoans] = useState<LoanWithComputedStatus[]>([]);
   const [selectedLoanIds, setSelectedLoanIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
@@ -158,7 +158,7 @@ export default function HomePage() {
     setMessage(null);
     setSelectedLoanIds([]);
     try {
-      const response = await fetch(`/api/returns?lineId=${encodeURIComponent(returnLineId)}`);
+      const response = await fetch(`/api/returns?name=${encodeURIComponent(returnBorrowerName)}`);
       const data = await response.json();
       if (!response.ok) throw new Error(data.error);
       setReturnLoans(data.loans ?? []);
@@ -225,7 +225,7 @@ export default function HomePage() {
           className={`tap rounded-md text-sm font-semibold ${tab === "return" ? "bg-leaf text-white" : "text-ink"}`}
           onClick={() => setTab("return")}
         >
-          我的借閱
+          還書
         </button>
         <button
           className={`tap rounded-md text-sm font-semibold ${tab === "publicLoans" ? "bg-leaf text-white" : "text-ink"}`}
@@ -443,11 +443,16 @@ export default function HomePage() {
       ) : tab === "return" ? (
         <section className="mt-4 grid gap-4">
           <div className="grid gap-3 rounded-md bg-white p-4 shadow-soft">
-            <Field label="Line ID">
-              <input className={inputClass} value={returnLineId} onChange={(event) => setReturnLineId(event.target.value)} />
+            <Field label="借閱人姓名">
+              <input
+                className={inputClass}
+                value={returnBorrowerName}
+                placeholder="請輸入姓氏或姓名"
+                onChange={(event) => setReturnBorrowerName(event.target.value)}
+              />
             </Field>
             <Button disabled={loading} onClick={searchReturns}>
-              查詢我的借閱
+              查詢還書清單
             </Button>
           </div>
 

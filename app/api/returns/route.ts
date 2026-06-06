@@ -5,16 +5,27 @@ import { getAdminSupabase } from "@/lib/supabase";
 
 export async function GET(request: NextRequest) {
   try {
-    const lineId = new URL(request.url).searchParams.get("lineId")?.trim();
-    if (!lineId) return badRequest("請輸入 Line ID。");
+    const searchParams = new URL(request.url).searchParams;
+    const borrowerName = searchParams.get("name")?.trim();
+    const lineId = searchParams.get("lineId")?.trim();
+    if (!borrowerName && !lineId) return badRequest("請輸入借閱人姓名。");
 
     const supabase = getAdminSupabase();
-    const { data, error } = await supabase
+    let query = supabase
       .from("loans")
       .select("*, books(*), borrowers!inner(*)")
-      .eq("borrowers.borrower_line_id", lineId)
       .is("returned_at", null)
       .order("borrowed_at", { ascending: false });
+
+    if (borrowerName) {
+      query = query.ilike("borrowers.borrower_last_name", `%${borrowerName}%`);
+    }
+
+    if (lineId) {
+      query = query.eq("borrowers.borrower_line_id", lineId);
+    }
+
+    const { data, error } = await query;
 
     if (error) throw error;
 
