@@ -17,6 +17,20 @@ type BorrowSuccess = {
   titles: string[];
 } | null;
 
+function BookCover({ book, size = "normal" }: { book?: Book | null; size?: "normal" | "small" }) {
+  const sizeClass = size === "small" ? "h-16 w-11" : "h-20 w-14";
+
+  return (
+    <div className={`flex ${sizeClass} shrink-0 items-center justify-center overflow-hidden rounded-md border border-ink/10 bg-ink/5`}>
+      {book?.cover_image_url ? (
+        <img alt={`${book.title}封面`} className="h-full w-full object-cover" src={book.cover_image_url} />
+      ) : (
+        <BookOpen className="text-ink/30" size={size === "small" ? 18 : 22} />
+      )}
+    </div>
+  );
+}
+
 export default function HomePage() {
   const [tab, setTab] = useState<"catalog" | "borrow" | "return" | "publicLoans">("catalog");
   const [books, setBooks] = useState<Book[]>([]);
@@ -286,9 +300,12 @@ export default function HomePage() {
             {paginatedCatalogBooks.map((book) => (
               <article key={book.id} className="grid gap-2 rounded-md bg-white p-4 shadow-soft">
                 <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-xs font-semibold text-leaf">{book.book_code}</p>
-                    <h2 className="text-base font-bold text-ink">{book.title}</h2>
+                  <div className="flex min-w-0 gap-3">
+                    <BookCover book={book} />
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold text-leaf">{book.book_code}</p>
+                      <h2 className="text-base font-bold text-ink">{book.title}</h2>
+                    </div>
                   </div>
                   <Badge tone={book.status === "在架上" ? "good" : "warn"}>{book.status}</Badge>
                 </div>
@@ -406,11 +423,14 @@ export default function HomePage() {
                 onClick={() => toggleBook(book.id)}
               >
                 <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-xs font-semibold text-leaf">{book.book_code}</p>
-                    <h2 className="text-base font-bold text-ink">{book.title}</h2>
+                  <div className="flex min-w-0 gap-3">
+                    <BookCover book={book} />
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold text-leaf">{book.book_code}</p>
+                      <h2 className="text-base font-bold text-ink">{book.title}</h2>
+                    </div>
                   </div>
-                  {selectedBookIds.includes(book.id) ? <Check className="text-leaf" size={20} /> : <BookOpen size={20} />}
+                  {selectedBookIds.includes(book.id) && <Check className="shrink-0 text-leaf" size={20} />}
                 </div>
                 {book.stage && <Badge tone="neutral">{book.stage}</Badge>}
                 <p className="text-sm text-ink/65">{[book.author, book.publisher].filter(Boolean).join(" · ")}</p>
@@ -470,8 +490,13 @@ export default function HomePage() {
                   }
                 />
                 <span className="grid flex-1 gap-2">
-                  <span className="font-bold text-ink">{loan.books?.title}</span>
-                  <span className="text-sm text-ink/65">到期日 {formatTaiwanDate(loan.due_at)}</span>
+                  <span className="flex gap-3">
+                    <BookCover book={loan.books} size="small" />
+                    <span className="grid flex-1 gap-2">
+                      <span className="font-bold text-ink">{loan.books?.title}</span>
+                      <span className="text-sm text-ink/65">到期日 {formatTaiwanDate(loan.due_at)}</span>
+                    </span>
+                  </span>
                   <Badge tone={loan.loan_status === "逾期" ? "bad" : "warn"}>{loan.loan_status}</Badge>
                 </span>
               </label>
@@ -514,9 +539,12 @@ export default function HomePage() {
             {publicLoans.map((loan) => (
               <article key={loan.id} className="grid gap-2 rounded-md bg-white p-4 shadow-soft">
                 <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-xs font-semibold text-leaf">{loan.books?.book_code}</p>
-                    <h3 className="font-bold text-ink">{loan.books?.title}</h3>
+                  <div className="flex min-w-0 gap-3">
+                    <BookCover book={loan.books} />
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold text-leaf">{loan.books?.book_code}</p>
+                      <h3 className="font-bold text-ink">{loan.books?.title}</h3>
+                    </div>
                   </div>
                   <Badge tone={loan.loan_status === "逾期" ? "bad" : "warn"}>{loan.loan_status}</Badge>
                 </div>

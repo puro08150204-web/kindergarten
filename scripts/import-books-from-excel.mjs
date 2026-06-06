@@ -84,6 +84,7 @@ for (const row of rows) {
     book_code: bookCode,
     stage: currentStage,
     title,
+    cover_image_url: String(row[9] || "").trim() || null,
     publisher: String(row[3] || "").trim() || null,
     published_date: normalizeDate(row[4]),
     author: String(row[6] || "").trim() || null,

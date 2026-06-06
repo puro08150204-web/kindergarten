@@ -14,6 +14,12 @@ type RawBookRow = {
   國小階段?: string;
   國高中階段?: string;
   title?: string;
+  cover_image_url?: string;
+  image_url?: string;
+  圖片?: string;
+  封面?: string;
+  封面圖片?: string;
+  封面圖片網址?: string;
   publisher?: string;
   published_date?: string | number | Date;
   author?: string;
@@ -90,6 +96,7 @@ function parseSectionedRows(sheet: XLSX.WorkSheet) {
       book_code: bookCode,
       stage: currentStage,
       title,
+      cover_image_url: String(row[9] || "").trim() || null,
       publisher: String(row[3] || "").trim() || null,
       published_date: normalizeExcelDate(row[4]),
       author: String(row[6] || "").trim() || null,
@@ -118,6 +125,9 @@ export async function POST(request: NextRequest) {
         book_code: String(row.book_code || "").trim(),
         stage: normalizeStage(row),
         title: String(row.title || "").trim(),
+        cover_image_url:
+          String(row.cover_image_url || row.image_url || row["封面圖片網址"] || row["封面圖片"] || row["封面"] || row["圖片"] || "").trim() ||
+          null,
         publisher: String(row.publisher || "").trim() || null,
         published_date: normalizeExcelDate(row.published_date),
         author: String(row.author || "").trim() || null,

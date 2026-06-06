@@ -6,6 +6,7 @@ export type Book = {
   book_code: string;
   stage: string | null;
   title: string;
+  cover_image_url: string | null;
   publisher: string | null;
   published_date: string | null;
   author: string | null;

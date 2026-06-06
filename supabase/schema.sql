@@ -6,6 +6,7 @@ create table if not exists public.books (
   book_code text not null unique,
   stage text,
   title text not null,
+  cover_image_url text,
   publisher text,
   published_date date,
   author text,

@@ -60,6 +60,7 @@ export async function POST(request: NextRequest) {
         book_code: payload.book_code.trim(),
         stage: payload.stage || null,
         title: payload.title.trim(),
+        cover_image_url: payload.cover_image_url || null,
         publisher: payload.publisher || null,
         published_date: payload.published_date || null,
         author: payload.author || null,

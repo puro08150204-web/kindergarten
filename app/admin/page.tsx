@@ -12,6 +12,7 @@ const emptyBook = {
   book_code: "",
   stage: "",
   title: "",
+  cover_image_url: "",
   publisher: "",
   published_date: "",
   author: "",
@@ -74,6 +75,7 @@ export default function AdminPage() {
       book_code: book.book_code || "",
       stage: book.stage || "",
       title: book.title || "",
+      cover_image_url: book.cover_image_url || "",
       publisher: book.publisher || "",
       published_date: toDateInputValue(book.published_date),
       author: book.author || "",
@@ -100,6 +102,74 @@ export default function AdminPage() {
       setMessage({ tone: "good", text: editingId ? "書籍已更新。" : "書籍已新增。" });
     } catch (error) {
       setMessage({ tone: "bad", text: error instanceof Error ? error.message : "儲存失敗。" });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function findCoverForForm() {
+    if (!form.title.trim()) {
+      setMessage({ tone: "bad", text: "請先輸入書名，再查封面。" });
+      return;
+    }
+
+    setLoading(true);
+    setMessage(null);
+    try {
+      const params = new URLSearchParams({ title: form.title });
+      if (form.author.trim()) params.set("author", form.author);
+      if (form.publisher.trim()) params.set("publisher", form.publisher);
+      const response = await fetch(`/api/books/cover-search?${params.toString()}`);
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error);
+      setForm((current) => ({ ...current, cover_image_url: data.cover_image_url ?? "" }));
+      setMessage({ tone: "good", text: "已找到封面，儲存後會顯示在書籍旁邊。" });
+    } catch (error) {
+      setMessage({ tone: "bad", text: error instanceof Error ? error.message : "查詢封面失敗。" });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function autoFillCoversForPage() {
+    const targets = paginatedBooks.filter((book) => !book.cover_image_url);
+    if (targets.length === 0) {
+      setMessage({ tone: "good", text: "這一頁的書都有封面了。" });
+      return;
+    }
+
+    setLoading(true);
+    setMessage(null);
+    let found = 0;
+    let skipped = 0;
+
+    try {
+      for (const book of targets) {
+        const params = new URLSearchParams({ title: book.title });
+        if (book.author) params.set("author", book.author);
+        if (book.publisher) params.set("publisher", book.publisher);
+
+        const coverResponse = await fetch(`/api/books/cover-search?${params.toString()}`);
+        const coverData = await coverResponse.json();
+        if (!coverResponse.ok || !coverData.cover_image_url) {
+          skipped += 1;
+          continue;
+        }
+
+        const saveResponse = await fetch(`/api/books/${book.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...book, cover_image_url: coverData.cover_image_url })
+        });
+
+        if (saveResponse.ok) found += 1;
+        else skipped += 1;
+      }
+
+      await loadBooks();
+      setMessage({ tone: "good", text: `本頁已自動補上 ${found} 張封面，${skipped} 本未找到。` });
+    } catch (error) {
+      setMessage({ tone: "bad", text: error instanceof Error ? error.message : "自動補封面失敗。" });
     } finally {
       setLoading(false);
     }
@@ -235,6 +305,26 @@ export default function AdminPage() {
             <Field label="書名">
               <input className={inputClass} value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} />
             </Field>
+            <Field label="封面圖片網址">
+              <div className="grid gap-2">
+                <input
+                  className={inputClass}
+                  value={form.cover_image_url}
+                  placeholder="可貼圖片網址，或按下方自動查封面"
+                  onChange={(event) => setForm({ ...form, cover_image_url: event.target.value })}
+                />
+                <Button variant="secondary" disabled={loading} onClick={findCoverForForm}>
+                  自動查封面
+                </Button>
+                {form.cover_image_url && (
+                  <img
+                    alt={`${form.title || "書籍"}封面`}
+                    className="h-28 w-20 rounded-md border border-ink/10 bg-ink/5 object-cover"
+                    src={form.cover_image_url}
+                  />
+                )}
+              </div>
+            </Field>
             <Field label="出版社">
               <input className={inputClass} value={form.publisher} onChange={(event) => setForm({ ...form, publisher: event.target.value })} />
             </Field>
@@ -307,18 +397,30 @@ export default function AdminPage() {
             <Button variant="secondary" onClick={() => loadBooks()}>
               套用篩選
             </Button>
+            <Button variant="secondary" disabled={loading} onClick={autoFillCoversForPage}>
+              自動補本頁封面
+            </Button>
             <div className="grid gap-2">
               {paginatedBooks.map((book) => (
                 <article key={book.id} className="grid gap-3 rounded-md border border-ink/10 p-3 sm:grid-cols-[1fr_auto]">
-                  <div className="grid gap-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <p className="text-xs font-semibold text-leaf">{book.book_code}</p>
-                      <Badge tone={book.status === "在架上" ? "good" : "warn"}>{book.status}</Badge>
-                      {book.stage && <Badge tone="neutral">{book.stage}</Badge>}
+                  <div className="grid grid-cols-[52px_minmax(0,1fr)] gap-3">
+                    <div className="flex h-20 w-14 items-center justify-center overflow-hidden rounded-md border border-ink/10 bg-ink/5">
+                      {book.cover_image_url ? (
+                        <img alt={`${book.title}封面`} className="h-full w-full object-cover" src={book.cover_image_url} />
+                      ) : (
+                        <span className="text-[10px] font-semibold text-ink/35">無封面</span>
+                      )}
                     </div>
-                    <h3 className="font-bold text-ink">{book.title}</h3>
-                    <p className="text-sm text-ink/65">{[book.author, book.publisher].filter(Boolean).join(" · ")}</p>
-                    {book.keywords && <p className="text-sm text-ink/55">{book.keywords}</p>}
+                    <div className="grid gap-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-xs font-semibold text-leaf">{book.book_code}</p>
+                        <Badge tone={book.status === "在架上" ? "good" : "warn"}>{book.status}</Badge>
+                        {book.stage && <Badge tone="neutral">{book.stage}</Badge>}
+                      </div>
+                      <h3 className="font-bold text-ink">{book.title}</h3>
+                      <p className="text-sm text-ink/65">{[book.author, book.publisher].filter(Boolean).join(" · ")}</p>
+                      {book.keywords && <p className="text-sm text-ink/55">{book.keywords}</p>}
+                    </div>
                   </div>
                   <div className="grid grid-cols-2 gap-2 sm:flex sm:items-start">
                     <Button variant="secondary" onClick={() => editBook(book)}>
