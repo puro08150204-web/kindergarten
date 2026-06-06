@@ -430,7 +430,11 @@ export default function HomePage() {
                       <h2 className="text-base font-bold text-ink">{book.title}</h2>
                     </div>
                   </div>
-                  {selectedBookIds.includes(book.id) && <Check className="shrink-0 text-leaf" size={20} />}
+                  {selectedBookIds.includes(book.id) ? (
+                    <Check className="shrink-0 text-leaf" size={20} />
+                  ) : (
+                    <BookOpen className="shrink-0 text-ink" size={20} />
+                  )}
                 </div>
                 {book.stage && <Badge tone="neutral">{book.stage}</Badge>}
                 <p className="text-sm text-ink/65">{[book.author, book.publisher].filter(Boolean).join(" · ")}</p>
