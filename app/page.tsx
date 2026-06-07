@@ -24,7 +24,14 @@ type BarcodeDetectorConstructor = new (options?: { formats?: string[] }) => {
 type Html5QrcodeScanner = {
   start: (
     cameraConfig: { facingMode: string } | { deviceId: { exact: string } },
-    config: { fps: number; qrbox: { width: number; height: number }; aspectRatio?: number; disableFlip?: boolean; formatsToSupport?: number[] },
+    config: {
+      fps: number;
+      qrbox?: { width: number; height: number };
+      aspectRatio?: number;
+      disableFlip?: boolean;
+      formatsToSupport?: number[];
+      experimentalFeatures?: { useBarCodeDetectorIfSupported?: boolean };
+    },
     onSuccess: (decodedText: string) => void,
     onError?: () => void
   ) => Promise<void>;
@@ -166,11 +173,10 @@ function BookScanner({
         await scanner.start(
           { facingMode: "environment" },
           {
-            fps: 20,
-            qrbox: { width: 300, height: 300 },
-            aspectRatio: 1,
+            fps: 15,
             disableFlip: true,
-            formatsToSupport: [qrFormat]
+            formatsToSupport: [qrFormat],
+            experimentalFeatures: { useBarCodeDetectorIfSupported: true }
           },
           (decodedText) => {
             if (scannedRef.current) return;
@@ -178,7 +184,7 @@ function BookScanner({
             onScan(normalizeScannedCode(decodedText));
           }
         );
-        setScannerMessage("請靠近 QR Code，讓它填滿方框再停一下");
+        setScannerMessage("請讓 QR Code 保持清楚，稍微拉遠一點，系統會自動辨識");
       } catch {
         setScannerMessage("正在嘗試使用手機原生掃描器。");
         await startNativeScanner();
@@ -205,7 +211,7 @@ function BookScanner({
           </button>
         </div>
         <div className="overflow-hidden rounded-md bg-ink">
-          <div id="book-scanner-reader" className={scannerMode === "html5" ? "min-h-[340px] w-full [&_video]:min-h-[340px] [&_video]:object-cover" : "hidden"} />
+          <div id="book-scanner-reader" className={scannerMode === "html5" ? "min-h-[380px] w-full [&_video]:min-h-[380px] [&_video]:object-cover" : "hidden"} />
           <video ref={videoRef} className={scannerMode === "native" ? "aspect-[3/4] w-full object-cover" : "hidden"} playsInline muted />
         </div>
         <p className="text-sm font-medium text-ink/70">{scannerMessage}</p>
