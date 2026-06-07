@@ -29,3 +29,46 @@ textarea {
 .tap {
   min-height: 44px;
 }
+
+@media print {
+  @page {
+    size: 80mm 80mm;
+    margin: 6mm;
+  }
+
+  body.qr-printing {
+    background: white !important;
+  }
+
+  body.qr-printing * {
+    visibility: hidden !important;
+  }
+
+  body.qr-printing #qr-print-area,
+  body.qr-printing #qr-print-area * {
+    visibility: visible !important;
+  }
+
+  body.qr-printing #qr-print-area {
+    display: grid !important;
+    position: fixed !important;
+    inset: 0 !important;
+    justify-items: center !important;
+    align-content: start !important;
+    gap: 6px !important;
+    padding: 0 !important;
+    text-align: center !important;
+  }
+
+  body.qr-printing #qr-print-area img {
+    width: 48mm !important;
+    height: 48mm !important;
+    padding: 0 !important;
+    border: 0 !important;
+  }
+
+  body.qr-printing #qr-print-area p {
+    margin: 0 !important;
+    color: #17211d !important;
+  }
+}

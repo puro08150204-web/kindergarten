@@ -223,7 +223,13 @@ export default function AdminPage() {
   }
 
   function printQrCode() {
+    if (!qrBook) return;
+
+    document.body.classList.add("qr-printing");
+    const removePrintClass = () => document.body.classList.remove("qr-printing");
+    window.addEventListener("afterprint", removePrintClass, { once: true });
     window.print();
+    window.setTimeout(removePrintClass, 1000);
   }
 
   return (
@@ -472,7 +478,7 @@ export default function AdminPage() {
                 <X size={20} />
               </button>
             </div>
-            <div className="grid justify-items-center gap-3">
+            <div id="qr-print-area" className="grid justify-items-center gap-3">
               <img alt={`${qrBook.title} QR Code`} className="h-64 w-64 rounded-md border border-ink/10 bg-white p-3" src={qrCodeUrl(qrBook.book_code)} />
               <div className="grid gap-1">
                 <p className="text-sm font-semibold text-leaf">{qrBook.book_code}</p>
