@@ -1,6 +1,6 @@
 "use client";
 
-import { Download, Edit3, FileUp, LogOut, Plus, RotateCcw, Save, Search, Trash2 } from "lucide-react";
+import { Download, Edit3, FileUp, LogOut, Plus, QrCode, RotateCcw, Save, Search, Trash2, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { Badge, Button, Field, Notice, inputClass } from "@/components/ui";
@@ -25,6 +25,10 @@ const pageSize = 20;
 type BookForm = typeof emptyBook;
 type Message = { tone: "good" | "bad"; text: string } | null;
 
+function qrCodeUrl(bookCode: string) {
+  return `https://api.qrserver.com/v1/create-qr-code/?size=360x360&data=${encodeURIComponent(bookCode)}`;
+}
+
 export default function AdminPage() {
   const [books, setBooks] = useState<Book[]>([]);
   const [loans, setLoans] = useState<LoanWithComputedStatus[]>([]);
@@ -35,6 +39,7 @@ export default function AdminPage() {
   const [loanMode, setLoanMode] = useState<"active" | "overdue" | "all">("active");
   const [form, setForm] = useState<BookForm>(emptyBook);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [qrBook, setQrBook] = useState<Book | null>(null);
   const [message, setMessage] = useState<Message>(null);
   const [loading, setLoading] = useState(false);
 
@@ -217,6 +222,10 @@ export default function AdminPage() {
     }
   }
 
+  function printQrCode() {
+    window.print();
+  }
+
   return (
     <main className="mx-auto min-h-screen w-full max-w-6xl px-4 py-5 sm:px-6">
       <header className="mb-5 flex flex-wrap items-center justify-between gap-3">
@@ -375,7 +384,11 @@ export default function AdminPage() {
                       {book.keywords && <p className="text-sm text-ink/55">{book.keywords}</p>}
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-2 sm:flex sm:items-start">
+                  <div className="grid grid-cols-3 gap-2 sm:flex sm:items-start">
+                    <Button variant="secondary" onClick={() => setQrBook(book)}>
+                      <QrCode size={16} />
+                      <span className="sm:hidden">QR Code</span>
+                    </Button>
                     <Button variant="secondary" onClick={() => editBook(book)}>
                       <Edit3 size={16} />
                     </Button>
@@ -449,6 +462,32 @@ export default function AdminPage() {
           </div>
         </section>
       </div>
+
+      {qrBook && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-ink/70 px-4 py-6 print:static print:bg-white print:p-0">
+          <div className="grid w-full max-w-sm gap-4 rounded-md bg-white p-5 text-center shadow-soft print:max-w-none print:shadow-none">
+            <div className="flex items-center justify-between gap-3 print:hidden">
+              <h2 className="text-lg font-bold text-ink">單本 QR Code</h2>
+              <button className="tap rounded-md border border-ink/10 p-2 text-ink" aria-label="關閉 QR Code" onClick={() => setQrBook(null)}>
+                <X size={20} />
+              </button>
+            </div>
+            <div className="grid justify-items-center gap-3">
+              <img alt={`${qrBook.title} QR Code`} className="h-64 w-64 rounded-md border border-ink/10 bg-white p-3" src={qrCodeUrl(qrBook.book_code)} />
+              <div className="grid gap-1">
+                <p className="text-sm font-semibold text-leaf">{qrBook.book_code}</p>
+                <p className="text-xl font-bold text-ink">{qrBook.title}</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2 print:hidden">
+              <Button onClick={printQrCode}>列印</Button>
+              <Button variant="secondary" onClick={() => setQrBook(null)}>
+                關閉
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
