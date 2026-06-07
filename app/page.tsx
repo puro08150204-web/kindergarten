@@ -2,7 +2,7 @@
 
 import { BookOpen, Camera, Check, ChevronDown, ClipboardList, RotateCcw, Search, X } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Badge, Button, Field, Notice, inputClass } from "@/components/ui";
 import { formatTaiwanDate } from "@/lib/dates";
 import type { Book, LoanWithComputedStatus } from "@/lib/types";
@@ -21,9 +21,23 @@ type BarcodeDetectorConstructor = new (options?: { formats?: string[] }) => {
   detect: (source: HTMLVideoElement) => Promise<Array<{ rawValue?: string }>>;
 };
 
+type Html5QrcodeScanner = {
+  start: (
+    cameraConfig: { facingMode: string } | { deviceId: { exact: string } },
+    config: { fps: number; qrbox: { width: number; height: number } },
+    onSuccess: (decodedText: string) => void,
+    onError?: () => void
+  ) => Promise<void>;
+  stop: () => Promise<void>;
+  clear: () => Promise<void>;
+};
+
+type Html5QrcodeConstructor = new (elementId: string) => Html5QrcodeScanner;
+
 declare global {
   interface Window {
     BarcodeDetector?: BarcodeDetectorConstructor;
+    Html5Qrcode?: Html5QrcodeConstructor;
   }
 }
 
@@ -53,6 +67,27 @@ function normalizeScannedCode(value: string) {
   }
 }
 
+function loadHtml5Qrcode() {
+  if (window.Html5Qrcode) return Promise.resolve();
+
+  return new Promise<void>((resolve, reject) => {
+    const existingScript = document.querySelector<HTMLScriptElement>('script[data-scanner="html5-qrcode"]');
+    if (existingScript) {
+      existingScript.addEventListener("load", () => resolve(), { once: true });
+      existingScript.addEventListener("error", () => reject(new Error("scanner load failed")), { once: true });
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.src = "https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js";
+    script.async = true;
+    script.dataset.scanner = "html5-qrcode";
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error("scanner load failed"));
+    document.body.appendChild(script);
+  });
+}
+
 function BookScanner({
   onScan,
   onClose
@@ -62,13 +97,18 @@ function BookScanner({
 }) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const html5ScannerRef = useRef<Html5QrcodeScanner | null>(null);
+  const scannedRef = useRef(false);
+  const [manualCode, setManualCode] = useState("");
+  const [scannerMode, setScannerMode] = useState<"html5" | "native">("html5");
   const [scannerMessage, setScannerMessage] = useState("請將書上的 QR Code 對準畫面中央");
 
   useEffect(() => {
     let active = true;
     let frameId = 0;
 
-    async function startScanner() {
+    async function startNativeScanner() {
+      setScannerMode("native");
       if (!window.BarcodeDetector) {
         setScannerMessage("這台手機瀏覽器不支援網頁掃描，請改用搜尋或手動選書。");
         return;
@@ -95,6 +135,7 @@ function BookScanner({
             const results = await detector.detect(videoRef.current);
             const rawValue = results[0]?.rawValue;
             if (rawValue) {
+              scannedRef.current = true;
               onScan(normalizeScannedCode(rawValue));
               return;
             }
@@ -110,12 +151,37 @@ function BookScanner({
       }
     }
 
+    async function startScanner() {
+      try {
+        await loadHtml5Qrcode();
+        if (!active || !window.Html5Qrcode) return;
+
+        const scanner = new window.Html5Qrcode("book-scanner-reader");
+        html5ScannerRef.current = scanner;
+        setScannerMode("html5");
+        await scanner.start(
+          { facingMode: "environment" },
+          { fps: 10, qrbox: { width: 240, height: 240 } },
+          (decodedText) => {
+            if (scannedRef.current) return;
+            scannedRef.current = true;
+            onScan(normalizeScannedCode(decodedText));
+          }
+        );
+        setScannerMessage("請將書上的 QR Code 對準方框");
+      } catch {
+        setScannerMessage("正在嘗試使用手機原生掃描器。");
+        await startNativeScanner();
+      }
+    }
+
     startScanner();
 
     return () => {
       active = false;
       if (frameId) window.cancelAnimationFrame(frameId);
       streamRef.current?.getTracks().forEach((track) => track.stop());
+      html5ScannerRef.current?.stop().then(() => html5ScannerRef.current?.clear()).catch(() => undefined);
     };
   }, [onScan]);
 
@@ -129,9 +195,23 @@ function BookScanner({
           </button>
         </div>
         <div className="overflow-hidden rounded-md bg-ink">
-          <video ref={videoRef} className="aspect-[3/4] w-full object-cover" playsInline muted />
+          <div id="book-scanner-reader" className={scannerMode === "html5" ? "min-h-72 w-full" : "hidden"} />
+          <video ref={videoRef} className={scannerMode === "native" ? "aspect-[3/4] w-full object-cover" : "hidden"} playsInline muted />
         </div>
         <p className="text-sm font-medium text-ink/70">{scannerMessage}</p>
+        <div className="grid gap-2 rounded-md bg-sky/[0.35] p-3">
+          <Field label="掃不到時可輸入索書編號">
+            <input
+              className={inputClass}
+              value={manualCode}
+              placeholder="例如 B005_01"
+              onChange={(event) => setManualCode(event.target.value)}
+            />
+          </Field>
+          <Button disabled={!manualCode.trim()} onClick={() => onScan(normalizeScannedCode(manualCode))}>
+            加入這本書
+          </Button>
+        </div>
         <Button variant="secondary" onClick={onClose}>
           取消掃描
         </Button>
@@ -225,7 +305,7 @@ export default function HomePage() {
     });
   }
 
-  async function selectScannedBook(scannedCode: string) {
+  const selectScannedBook = useCallback(async (scannedCode: string) => {
     const bookCode = scannedCode.trim();
     setScannerOpen(false);
     setMessage(null);
@@ -272,7 +352,7 @@ export default function HomePage() {
     } catch (error) {
       setMessage({ tone: "bad", text: error instanceof Error ? error.message : "掃描後查詢失敗。" });
     }
-  }
+  }, [selectedBookIds]);
 
   function toggleBookDetails(id: string) {
     setExpandedBookIds((current) =>
