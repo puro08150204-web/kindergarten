@@ -24,7 +24,7 @@ type BarcodeDetectorConstructor = new (options?: { formats?: string[] }) => {
 type Html5QrcodeScanner = {
   start: (
     cameraConfig: { facingMode: string } | { deviceId: { exact: string } },
-    config: { fps: number; qrbox: { width: number; height: number } },
+    config: { fps: number; qrbox: { width: number; height: number }; aspectRatio?: number; disableFlip?: boolean; formatsToSupport?: number[] },
     onSuccess: (decodedText: string) => void,
     onError?: () => void
   ) => Promise<void>;
@@ -38,6 +38,9 @@ declare global {
   interface Window {
     BarcodeDetector?: BarcodeDetectorConstructor;
     Html5Qrcode?: Html5QrcodeConstructor;
+    Html5QrcodeSupportedFormats?: {
+      QR_CODE?: number;
+    };
   }
 }
 
@@ -159,16 +162,23 @@ function BookScanner({
         const scanner = new window.Html5Qrcode("book-scanner-reader");
         html5ScannerRef.current = scanner;
         setScannerMode("html5");
+        const qrFormat = window.Html5QrcodeSupportedFormats?.QR_CODE ?? 0;
         await scanner.start(
           { facingMode: "environment" },
-          { fps: 10, qrbox: { width: 240, height: 240 } },
+          {
+            fps: 20,
+            qrbox: { width: 300, height: 300 },
+            aspectRatio: 1,
+            disableFlip: true,
+            formatsToSupport: [qrFormat]
+          },
           (decodedText) => {
             if (scannedRef.current) return;
             scannedRef.current = true;
             onScan(normalizeScannedCode(decodedText));
           }
         );
-        setScannerMessage("請將書上的 QR Code 對準方框");
+        setScannerMessage("請靠近 QR Code，讓它填滿方框再停一下");
       } catch {
         setScannerMessage("正在嘗試使用手機原生掃描器。");
         await startNativeScanner();
@@ -186,8 +196,8 @@ function BookScanner({
   }, [onScan]);
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-ink/70 px-4 py-6">
-      <div className="grid w-full max-w-md gap-3 rounded-md bg-white p-4 shadow-soft">
+    <div className="fixed inset-0 z-50 grid place-items-center bg-ink/70 px-3 py-4">
+      <div className="grid max-h-[96vh] w-full max-w-md gap-3 overflow-y-auto rounded-md bg-white p-4 shadow-soft">
         <div className="flex items-center justify-between gap-3">
           <h2 className="text-lg font-bold text-ink">掃描書籍</h2>
           <button className="tap rounded-md border border-ink/10 p-2 text-ink" aria-label="關閉掃描" onClick={onClose}>
@@ -195,7 +205,7 @@ function BookScanner({
           </button>
         </div>
         <div className="overflow-hidden rounded-md bg-ink">
-          <div id="book-scanner-reader" className={scannerMode === "html5" ? "min-h-72 w-full" : "hidden"} />
+          <div id="book-scanner-reader" className={scannerMode === "html5" ? "min-h-[340px] w-full [&_video]:min-h-[340px] [&_video]:object-cover" : "hidden"} />
           <video ref={videoRef} className={scannerMode === "native" ? "aspect-[3/4] w-full object-cover" : "hidden"} playsInline muted />
         </div>
         <p className="text-sm font-medium text-ink/70">{scannerMessage}</p>
