@@ -8,6 +8,7 @@ export async function GET(request: NextRequest) {
     const supabase = getAdminSupabase();
     const { searchParams } = new URL(request.url);
     const q = searchParams.get("q")?.trim();
+    const bookCode = searchParams.get("bookCode")?.trim();
     const status = searchParams.get("status")?.trim();
     const stage = searchParams.get("stage")?.trim();
 
@@ -16,6 +17,7 @@ export async function GET(request: NextRequest) {
       .select("*")
       .order("book_code", { ascending: true });
 
+    if (bookCode) query = query.eq("book_code", bookCode);
     if (status) query = query.eq("status", status);
     if (stage) query = query.eq("stage", stage);
     if (q) {
@@ -30,14 +32,16 @@ export async function GET(request: NextRequest) {
     if (isMissingSupabaseConfig(error)) {
       const { searchParams } = new URL(request.url);
       const q = searchParams.get("q")?.trim().toLowerCase();
+      const bookCode = searchParams.get("bookCode")?.trim();
       const status = searchParams.get("status")?.trim();
       const stage = searchParams.get("stage")?.trim();
       const books = demoBooks.filter((book) => {
+        const matchesBookCode = bookCode ? book.book_code === bookCode : true;
         const matchesStatus = status ? book.status === status : true;
         const matchesStage = stage ? book.stage === stage : true;
         const searchText = `${book.title} ${book.book_code} ${book.stage ?? ""} ${book.keywords ?? ""}`.toLowerCase();
         const matchesQuery = q ? searchText.includes(q) : true;
-        return matchesStatus && matchesStage && matchesQuery;
+        return matchesBookCode && matchesStatus && matchesStage && matchesQuery;
       });
       return NextResponse.json({ books, setupRequired: true });
     }

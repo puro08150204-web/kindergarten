@@ -1,8 +1,8 @@
 "use client";
 
-import { BookOpen, Check, ChevronDown, ClipboardList, RotateCcw, Search } from "lucide-react";
+import { BookOpen, Camera, Check, ChevronDown, ClipboardList, RotateCcw, Search, X } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Badge, Button, Field, Notice, inputClass } from "@/components/ui";
 import { formatTaiwanDate } from "@/lib/dates";
 import type { Book, LoanWithComputedStatus } from "@/lib/types";
@@ -17,6 +17,16 @@ type BorrowSuccess = {
   titles: string[];
 } | null;
 
+type BarcodeDetectorConstructor = new (options?: { formats?: string[] }) => {
+  detect: (source: HTMLVideoElement) => Promise<Array<{ rawValue?: string }>>;
+};
+
+declare global {
+  interface Window {
+    BarcodeDetector?: BarcodeDetectorConstructor;
+  }
+}
+
 function BookCover({ book, size = "normal" }: { book?: Book | null; size?: "normal" | "small" }) {
   const sizeClass = size === "small" ? "h-16 w-11" : "h-20 w-14";
 
@@ -27,6 +37,105 @@ function BookCover({ book, size = "normal" }: { book?: Book | null; size?: "norm
       ) : (
         <BookOpen className="text-ink/30" size={size === "small" ? 18 : 22} />
       )}
+    </div>
+  );
+}
+
+function normalizeScannedCode(value: string) {
+  const text = value.trim();
+  if (!text) return "";
+
+  try {
+    const url = new URL(text);
+    return url.searchParams.get("book_code") || url.searchParams.get("code") || url.hash.replace(/^#/, "") || url.pathname.split("/").filter(Boolean).pop() || text;
+  } catch {
+    return text;
+  }
+}
+
+function BookScanner({
+  onScan,
+  onClose
+}: {
+  onScan: (code: string) => void;
+  onClose: () => void;
+}) {
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const [scannerMessage, setScannerMessage] = useState("請將書上的 QR Code 對準畫面中央");
+
+  useEffect(() => {
+    let active = true;
+    let frameId = 0;
+
+    async function startScanner() {
+      if (!window.BarcodeDetector) {
+        setScannerMessage("這台手機瀏覽器不支援網頁掃描，請改用搜尋或手動選書。");
+        return;
+      }
+
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: "environment" } },
+          audio: false
+        });
+        streamRef.current = stream;
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          await videoRef.current.play();
+        }
+
+        const detector = new window.BarcodeDetector({
+          formats: ["qr_code", "ean_13", "code_128", "code_39"]
+        });
+
+        async function scanFrame() {
+          if (!active || !videoRef.current) return;
+          try {
+            const results = await detector.detect(videoRef.current);
+            const rawValue = results[0]?.rawValue;
+            if (rawValue) {
+              onScan(normalizeScannedCode(rawValue));
+              return;
+            }
+          } catch {
+            setScannerMessage("掃描中，請靠近一點或讓 QR Code 更清楚。");
+          }
+          frameId = window.requestAnimationFrame(scanFrame);
+        }
+
+        frameId = window.requestAnimationFrame(scanFrame);
+      } catch {
+        setScannerMessage("無法開啟相機，請確認已允許相機權限。");
+      }
+    }
+
+    startScanner();
+
+    return () => {
+      active = false;
+      if (frameId) window.cancelAnimationFrame(frameId);
+      streamRef.current?.getTracks().forEach((track) => track.stop());
+    };
+  }, [onScan]);
+
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-ink/70 px-4 py-6">
+      <div className="grid w-full max-w-md gap-3 rounded-md bg-white p-4 shadow-soft">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-lg font-bold text-ink">掃描書籍</h2>
+          <button className="tap rounded-md border border-ink/10 p-2 text-ink" aria-label="關閉掃描" onClick={onClose}>
+            <X size={20} />
+          </button>
+        </div>
+        <div className="overflow-hidden rounded-md bg-ink">
+          <video ref={videoRef} className="aspect-[3/4] w-full object-cover" playsInline muted />
+        </div>
+        <p className="text-sm font-medium text-ink/70">{scannerMessage}</p>
+        <Button variant="secondary" onClick={onClose}>
+          取消掃描
+        </Button>
+      </div>
     </div>
   );
 }
@@ -45,6 +154,7 @@ export default function HomePage() {
   const [borrowPage, setBorrowPage] = useState(1);
   const [expandedBookIds, setExpandedBookIds] = useState<string[]>([]);
   const [selectedBookIds, setSelectedBookIds] = useState<string[]>([]);
+  const [scannerOpen, setScannerOpen] = useState(false);
   const [borrowPanelOpen, setBorrowPanelOpen] = useState(false);
   const [borrower, setBorrower] = useState({
     borrower_last_name: "",
@@ -113,6 +223,55 @@ export default function HomePage() {
       if (current.length >= 3) return current;
       return [...current, id];
     });
+  }
+
+  async function selectScannedBook(scannedCode: string) {
+    const bookCode = scannedCode.trim();
+    setScannerOpen(false);
+    setMessage(null);
+
+    if (!bookCode) {
+      setMessage({ tone: "bad", text: "沒有讀到書籍編號，請再掃一次。" });
+      return;
+    }
+
+    if (selectedBookIds.length >= 3) {
+      setMessage({ tone: "bad", text: "一次最多借 3 本書。" });
+      return;
+    }
+
+    try {
+      const params = new URLSearchParams({ bookCode });
+      const response = await fetch(`/api/books?${params.toString()}`);
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error);
+      const scannedBook = data.books?.[0] as Book | undefined;
+
+      if (!scannedBook) {
+        setMessage({ tone: "bad", text: `找不到索書編號「${bookCode}」。` });
+        return;
+      }
+
+      if (scannedBook.status !== "在架上") {
+        setMessage({ tone: "bad", text: `「${scannedBook.title}」目前不是在架上，無法借出。` });
+        return;
+      }
+
+      if (selectedBookIds.includes(scannedBook.id)) {
+        setMessage({ tone: "good", text: `「${scannedBook.title}」已經在已選清單中。` });
+        return;
+      }
+
+      setBooks((current) => {
+        if (current.some((book) => book.id === scannedBook.id)) return current;
+        return [scannedBook, ...current];
+      });
+      setSelectedBookIds((current) => [...current, scannedBook.id]);
+      setBorrowPage(1);
+      setMessage({ tone: "good", text: `已加入「${scannedBook.title}」。` });
+    } catch (error) {
+      setMessage({ tone: "bad", text: error instanceof Error ? error.message : "掃描後查詢失敗。" });
+    }
   }
 
   function toggleBookDetails(id: string) {
@@ -368,6 +527,10 @@ export default function HomePage() {
             <Button variant="secondary" onClick={() => loadBooks()}>
               套用分類
             </Button>
+            <Button variant="secondary" onClick={() => setScannerOpen(true)}>
+              <Camera size={18} />
+              掃描借書
+            </Button>
             <p className="text-sm text-ink/65">已選 {selectedBookIds.length}/3 本</p>
           </div>
 
@@ -463,6 +626,7 @@ export default function HomePage() {
               下一頁
             </Button>
           </div>
+          {scannerOpen && <BookScanner onScan={selectScannedBook} onClose={() => setScannerOpen(false)} />}
         </section>
       ) : tab === "return" ? (
         <section className="mt-4 grid gap-4">
