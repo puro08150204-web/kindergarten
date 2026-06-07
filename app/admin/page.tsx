@@ -26,7 +26,13 @@ type BookForm = typeof emptyBook;
 type Message = { tone: "good" | "bad"; text: string } | null;
 
 function qrCodeUrl(bookCode: string) {
-  return `https://api.qrserver.com/v1/create-qr-code/?size=360x360&data=${encodeURIComponent(bookCode)}`;
+  const params = new URLSearchParams({
+    size: "720x720",
+    data: bookCode,
+    ecc: "L",
+    qzone: "4"
+  });
+  return `https://api.qrserver.com/v1/create-qr-code/?${params.toString()}`;
 }
 
 export default function AdminPage() {
@@ -136,12 +142,12 @@ export default function AdminPage() {
     }
   }
 
-  async function deleteBook(id: string) {
-    if (!confirm("確定刪除這本書？")) return;
+  async function deleteBook(book: Book) {
+    if (!confirm(`確定要刪除這本書？\n\n${book.book_code}\n${book.title}`)) return;
     setLoading(true);
     setMessage(null);
     try {
-      const response = await fetch(`/api/books/${id}`, { method: "DELETE" });
+      const response = await fetch(`/api/books/${book.id}`, { method: "DELETE" });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error);
       await loadBooks();
@@ -398,7 +404,7 @@ export default function AdminPage() {
                     <Button variant="secondary" onClick={() => editBook(book)}>
                       <Edit3 size={16} />
                     </Button>
-                    <Button variant="danger" onClick={() => deleteBook(book.id)}>
+                    <Button variant="danger" onClick={() => deleteBook(book)}>
                       <Trash2 size={16} />
                     </Button>
                   </div>
@@ -480,7 +486,7 @@ export default function AdminPage() {
             </div>
             <div id="qr-print-area" className="grid justify-items-center gap-3">
               <img alt={`${qrBook.title} QR Code`} className="h-64 w-64 rounded-md border border-ink/10 bg-white p-3" src={qrCodeUrl(qrBook.book_code)} />
-              <div className="grid gap-1">
+              <div className="qr-print-text grid gap-1">
                 <p className="text-sm font-semibold text-leaf">{qrBook.book_code}</p>
                 <p className="text-xl font-bold text-ink">{qrBook.title}</p>
               </div>
