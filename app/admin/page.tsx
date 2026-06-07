@@ -470,8 +470,8 @@ export default function AdminPage() {
       </div>
 
       {qrBook && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-ink/70 px-4 py-6 print:static print:bg-white print:p-0">
-          <div className="grid w-full max-w-sm gap-4 rounded-md bg-white p-5 text-center shadow-soft print:max-w-none print:shadow-none">
+        <div className="qr-print-layer fixed inset-0 z-50 grid place-items-center bg-ink/70 px-4 py-6 print:static print:bg-white print:p-0">
+          <div className="qr-print-card grid w-full max-w-sm gap-4 rounded-md bg-white p-5 text-center shadow-soft print:max-w-none print:shadow-none">
             <div className="flex items-center justify-between gap-3 print:hidden">
               <h2 className="text-lg font-bold text-ink">單本 QR Code</h2>
               <button className="tap rounded-md border border-ink/10 p-2 text-ink" aria-label="關閉 QR Code" onClick={() => setQrBook(null)}>

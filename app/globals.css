@@ -38,21 +38,46 @@ textarea {
 
   body.qr-printing {
     background: white !important;
+    min-height: 0 !important;
+    height: auto !important;
   }
 
-  body.qr-printing * {
-    visibility: hidden !important;
+  body.qr-printing main > :not(.qr-print-layer) {
+    display: none !important;
   }
 
-  body.qr-printing #qr-print-area,
-  body.qr-printing #qr-print-area * {
-    visibility: visible !important;
+  body.qr-printing .qr-print-layer {
+    display: block !important;
+    position: static !important;
+    inset: auto !important;
+    min-height: 0 !important;
+    height: auto !important;
+    padding: 0 !important;
+    background: white !important;
+    break-after: avoid !important;
+    page-break-after: avoid !important;
+  }
+
+  body.qr-printing .qr-print-card {
+    display: grid !important;
+    width: 68mm !important;
+    max-width: 68mm !important;
+    min-height: 0 !important;
+    gap: 6px !important;
+    padding: 0 !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    break-after: avoid !important;
+    page-break-after: avoid !important;
+  }
+
+  body.qr-printing .print\:hidden {
+    display: none !important;
   }
 
   body.qr-printing #qr-print-area {
     display: grid !important;
-    position: fixed !important;
-    inset: 0 !important;
+    position: static !important;
     justify-items: center !important;
     align-content: start !important;
     gap: 6px !important;
@@ -70,5 +95,17 @@ textarea {
   body.qr-printing #qr-print-area p {
     margin: 0 !important;
     color: #17211d !important;
+  }
+
+  body.qr-printing #qr-print-area p:first-child {
+    font-size: 12px !important;
+    font-weight: 700 !important;
+  }
+
+  body.qr-printing #qr-print-area p:last-child {
+    max-width: 64mm !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    line-height: 1.35 !important;
   }
 }
