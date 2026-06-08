@@ -237,7 +237,7 @@ function BookScanner({
 }
 
 export default function HomePage() {
-  const [tab, setTab] = useState<"catalog" | "borrow" | "return" | "publicLoans">("catalog");
+  const [tab, setTab] = useState<"catalog" | "borrow" | "return" | "publicLoans">("borrow");
   const [books, setBooks] = useState<Book[]>([]);
   const [catalogBooks, setCatalogBooks] = useState<Book[]>([]);
   const [publicLoans, setPublicLoans] = useState<LoanWithComputedStatus[]>([]);
@@ -476,15 +476,6 @@ export default function HomePage() {
 
       <div className="mb-4 grid grid-cols-4 rounded-md bg-white p-1 shadow-soft">
         <button
-          className={`tap rounded-md text-sm font-semibold ${tab === "catalog" ? "bg-leaf text-white" : "text-ink"}`}
-          onClick={() => {
-            setTab("catalog");
-            loadCatalogBooks();
-          }}
-        >
-          全部書籍
-        </button>
-        <button
           className={`tap rounded-md text-sm font-semibold ${tab === "borrow" ? "bg-leaf text-white" : "text-ink"}`}
           onClick={() => setTab("borrow")}
         >
@@ -504,6 +495,15 @@ export default function HomePage() {
           }}
         >
           借出名單
+        </button>
+        <button
+          className={`tap rounded-md text-sm font-semibold ${tab === "catalog" ? "bg-leaf text-white" : "text-ink"}`}
+          onClick={() => {
+            setTab("catalog");
+            loadCatalogBooks();
+          }}
+        >
+          全部書籍
         </button>
       </div>
 
