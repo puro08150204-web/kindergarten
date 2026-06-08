@@ -32,8 +32,8 @@ textarea {
 
 @media print {
   @page {
-    size: 80mm 80mm;
-    margin: 6mm;
+    size: 15mm 15mm;
+    margin: 0;
   }
 
   body.qr-printing {
@@ -60,8 +60,8 @@ textarea {
 
   body.qr-printing .qr-print-card {
     display: grid !important;
-    width: 68mm !important;
-    max-width: 68mm !important;
+    width: 15mm !important;
+    max-width: 15mm !important;
     min-height: 0 !important;
     gap: 6px !important;
     padding: 0 !important;
@@ -80,16 +80,20 @@ textarea {
     position: static !important;
     justify-items: center !important;
     align-content: start !important;
-    gap: 6px !important;
+    gap: 0 !important;
     padding: 0 !important;
     text-align: center !important;
   }
 
   body.qr-printing #qr-print-area img {
-    width: 48mm !important;
-    height: 48mm !important;
+    width: 15mm !important;
+    height: 15mm !important;
     padding: 0 !important;
     border: 0 !important;
+  }
+
+  body.qr-printing #qr-print-area .qr-print-text {
+    display: none !important;
   }
 
   body.qr-printing #qr-print-area p {
