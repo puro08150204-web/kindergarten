@@ -19,7 +19,8 @@ create table if not exists public.books (
 create table if not exists public.borrowers (
   id uuid primary key default gen_random_uuid(),
   borrower_last_name text not null,
-  borrower_line_id text not null unique,
+  borrower_email text unique,
+  borrower_line_id text unique,
   child_class text not null,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
@@ -31,6 +32,7 @@ create table if not exists public.loans (
   borrower_id uuid not null references public.borrowers(id) on delete cascade,
   borrowed_at timestamptz not null default now(),
   due_at timestamptz not null default (now() + interval '30 days'),
+  due_reminder_sent_at timestamptz,
   returned_at timestamptz,
   created_at timestamptz not null default now()
 );
