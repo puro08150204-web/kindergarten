@@ -6,10 +6,9 @@ import { getAdminSupabase } from "@/lib/supabase";
 export async function GET(request: NextRequest) {
   try {
     const searchParams = new URL(request.url).searchParams;
-    const email = searchParams.get("email")?.trim().toLowerCase();
     const borrowerName = searchParams.get("name")?.trim();
     const lineId = searchParams.get("lineId")?.trim();
-    if (!email && !borrowerName && !lineId) return badRequest("請輸入借閱人姓名。");
+    if (!borrowerName && !lineId) return badRequest("請輸入借閱人姓名。");
 
     const supabase = getAdminSupabase();
     let query = supabase
@@ -17,10 +16,6 @@ export async function GET(request: NextRequest) {
       .select("*, books(*), borrowers!inner(*)")
       .is("returned_at", null)
       .order("borrowed_at", { ascending: false });
-
-    if (email) {
-      query = query.eq("borrowers.borrower_email", email);
-    }
 
     if (borrowerName) {
       query = query.ilike("borrowers.borrower_last_name", `%${borrowerName}%`);

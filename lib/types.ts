@@ -19,8 +19,7 @@ export type Book = {
 export type Borrower = {
   id: string;
   borrower_last_name: string;
-  borrower_email: string | null;
-  borrower_line_id?: string | null;
+  borrower_line_id: string;
   child_class: string;
   created_at: string;
   updated_at: string;
@@ -32,7 +31,6 @@ export type Loan = {
   borrower_id: string;
   borrowed_at: string;
   due_at: string;
-  due_reminder_sent_at?: string | null;
   returned_at: string | null;
   books?: Book | null;
   borrowers?: Borrower | null;
