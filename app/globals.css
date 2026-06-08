@@ -32,7 +32,7 @@ textarea {
 
 @media print {
   @page {
-    size: 15mm 15mm;
+    size: 30mm 50mm;
     margin: 0;
   }
 
@@ -60,8 +60,8 @@ textarea {
 
   body.qr-printing .qr-print-card {
     display: grid !important;
-    width: 15mm !important;
-    max-width: 15mm !important;
+    width: 30mm !important;
+    max-width: 30mm !important;
     min-height: 0 !important;
     gap: 6px !important;
     padding: 0 !important;
@@ -80,14 +80,14 @@ textarea {
     position: static !important;
     justify-items: center !important;
     align-content: start !important;
-    gap: 0 !important;
+    gap: 1mm !important;
     padding: 0 !important;
     text-align: center !important;
   }
 
   body.qr-printing #qr-print-area img {
-    width: 15mm !important;
-    height: 15mm !important;
+    width: 25mm !important;
+    height: 25mm !important;
     padding: 0 !important;
     border: 0 !important;
   }
@@ -96,20 +96,28 @@ textarea {
     display: none !important;
   }
 
+  body.qr-printing #qr-print-area .qr-print-heading {
+    display: grid !important;
+    gap: 0 !important;
+    width: 30mm !important;
+    text-align: center !important;
+  }
+
   body.qr-printing #qr-print-area p {
     margin: 0 !important;
     color: #17211d !important;
   }
 
   body.qr-printing #qr-print-area p:first-child {
-    font-size: 12px !important;
+    font-size: 8px !important;
     font-weight: 700 !important;
+    line-height: 1.1 !important;
   }
 
   body.qr-printing #qr-print-area p:last-child {
-    max-width: 64mm !important;
-    font-size: 11px !important;
+    max-width: 30mm !important;
+    font-size: 7px !important;
     font-weight: 700 !important;
-    line-height: 1.35 !important;
+    line-height: 1.1 !important;
   }
 }

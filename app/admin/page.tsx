@@ -485,9 +485,12 @@ export default function AdminPage() {
               </button>
             </div>
             <div id="qr-print-area" className="grid justify-items-center gap-3">
-              <img alt={`${qrBook.title} QR Code`} className="h-64 w-64 rounded-md border border-ink/10 bg-white p-3" src={qrCodeUrl(qrBook.book_code)} />
-              <div className="qr-print-text grid gap-1">
+              <div className="qr-print-heading grid gap-0.5 text-center">
+                <p className="text-sm font-bold text-ink">海聲幼兒園</p>
                 <p className="text-sm font-semibold text-leaf">{qrBook.book_code}</p>
+              </div>
+              <img alt={`${qrBook.title} QR Code`} className="h-64 w-64 rounded-md border border-ink/10 bg-white p-3" src={qrCodeUrl(qrBook.book_code)} />
+              <div className="qr-print-text grid gap-1 print:hidden">
                 <p className="text-xl font-bold text-ink">{qrBook.title}</p>
               </div>
             </div>
