@@ -13,7 +13,7 @@ const pageSize = 20;
 
 type BorrowSuccess = {
   dueAt: string;
-  lineId: string;
+  email: string;
   titles: string[];
 } | null;
 
@@ -254,7 +254,7 @@ export default function HomePage() {
   const [borrowPanelOpen, setBorrowPanelOpen] = useState(false);
   const [borrower, setBorrower] = useState({
     borrower_last_name: "",
-    borrower_line_id: "",
+    borrower_email: "",
     child_class: ""
   });
   const [returnBorrowerName, setReturnBorrowerName] = useState("");
@@ -406,12 +406,12 @@ export default function HomePage() {
       if (!response.ok) throw new Error(data.error);
       setBorrowSuccess({
         dueAt: data.loans?.[0]?.due_at ?? new Date().toISOString(),
-        lineId: borrower.borrower_line_id,
+        email: borrower.borrower_email,
         titles: selectedBooks.map((book) => book.title)
       });
       setSelectedBookIds([]);
       setBorrowPanelOpen(false);
-      setBorrower({ borrower_last_name: "", borrower_line_id: "", child_class: "" });
+      setBorrower({ borrower_last_name: "", borrower_email: "", child_class: "" });
       await loadBooks();
       await loadPublicLoans();
       setMessage({ tone: "good", text: "借閱成功。" });
@@ -511,7 +511,7 @@ export default function HomePage() {
       {borrowSuccess && (
         <div className="mt-3 grid gap-2 rounded-md bg-white p-4 shadow-soft">
           <h2 className="text-lg font-bold text-leaf">借閱成功</h2>
-          <p className="text-sm text-ink/70">Line ID：{borrowSuccess.lineId}</p>
+          <p className="text-sm text-ink/70">Email：{borrowSuccess.email}</p>
           <p className="text-sm text-ink/70">到期日：{formatTaiwanDate(borrowSuccess.dueAt)}</p>
           <div className="rounded-md bg-sky/[0.45] p-3 text-sm text-ink">
             {borrowSuccess.titles.join("、")}
@@ -657,8 +657,13 @@ export default function HomePage() {
                   <Field label="姓名">
                     <input className={inputClass} value={borrower.borrower_last_name} onChange={(event) => setBorrower({ ...borrower, borrower_last_name: event.target.value })} />
                   </Field>
-                  <Field label="Line ID">
-                    <input className={inputClass} value={borrower.borrower_line_id} onChange={(event) => setBorrower({ ...borrower, borrower_line_id: event.target.value })} />
+                  <Field label="Email">
+                    <input
+                      className={inputClass}
+                      type="email"
+                      value={borrower.borrower_email}
+                      onChange={(event) => setBorrower({ ...borrower, borrower_email: event.target.value })}
+                    />
                   </Field>
                   <Field label="最大小孩班級">
                     <input className={inputClass} value={borrower.child_class} onChange={(event) => setBorrower({ ...borrower, child_class: event.target.value })} />
