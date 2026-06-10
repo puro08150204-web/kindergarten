@@ -41,6 +41,8 @@ export default function AdminPage() {
   const [query, setQuery] = useState("");
   const [bookStatusFilter, setBookStatusFilter] = useState("");
   const [bookStageFilter, setBookStageFilter] = useState("");
+  const [categories, setCategories] = useState<string[]>(bookStages);
+  const [newCategory, setNewCategory] = useState("");
   const [bookPage, setBookPage] = useState(1);
   const [loanMode, setLoanMode] = useState<"active" | "overdue" | "all">("active");
   const [form, setForm] = useState<BookForm>(emptyBook);
@@ -54,6 +56,10 @@ export default function AdminPage() {
     [bookPage, books]
   );
   const totalBookPages = Math.max(1, Math.ceil(books.length / pageSize));
+  const categoryOptions = useMemo(
+    () => Array.from(new Set([...categories, ...books.map((book) => book.stage).filter(Boolean) as string[]])),
+    [books, categories]
+  );
 
   async function loadBooks(nextQuery = query) {
     const params = new URLSearchParams();
@@ -72,7 +78,14 @@ export default function AdminPage() {
     setLoans(data.loans ?? []);
   }
 
+  async function loadCategories() {
+    const response = await fetch("/api/categories");
+    const data = await response.json();
+    setCategories(data.categories ?? bookStages);
+  }
+
   useEffect(() => {
+    loadCategories();
     loadBooks("");
     loadLoans("active");
     // Initial load only.
@@ -113,6 +126,31 @@ export default function AdminPage() {
       setMessage({ tone: "good", text: editingId ? "書籍已更新。" : "書籍已新增。" });
     } catch (error) {
       setMessage({ tone: "bad", text: error instanceof Error ? error.message : "儲存失敗。" });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function addCategory() {
+    const name = newCategory.trim();
+    if (!name) return;
+    setLoading(true);
+    setMessage(null);
+    try {
+      const response = await fetch("/api/categories", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error);
+      await loadCategories();
+      setForm((current) => ({ ...current, stage: data.category?.name ?? name }));
+      setBookStageFilter("");
+      setNewCategory("");
+      setMessage({ tone: "good", text: `已新增分類「${data.category?.name ?? name}」。` });
+    } catch (error) {
+      setMessage({ tone: "bad", text: error instanceof Error ? error.message : "新增分類失敗。" });
     } finally {
       setLoading(false);
     }
@@ -272,12 +310,26 @@ export default function AdminPage() {
             <Field label="階段分類">
               <select className={inputClass} value={form.stage} onChange={(event) => setForm({ ...form, stage: event.target.value })}>
                 <option value="">未分類</option>
-                {bookStages.map((stage) => (
+                {categoryOptions.map((stage) => (
                   <option key={stage} value={stage}>
                     {stage}
                   </option>
                 ))}
               </select>
+            </Field>
+            <Field label="新增分類">
+              <div className="grid gap-2">
+                <input
+                  className={inputClass}
+                  value={newCategory}
+                  placeholder="例如：成人教養、英文繪本"
+                  onChange={(event) => setNewCategory(event.target.value)}
+                />
+                <Button variant="secondary" disabled={loading || !newCategory.trim()} onClick={addCategory}>
+                  <Plus size={18} />
+                  新增分類
+                </Button>
+              </div>
             </Field>
             <Field label="書名">
               <input className={inputClass} value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} />
@@ -364,7 +416,7 @@ export default function AdminPage() {
               </select>
               <select className={inputClass} value={bookStageFilter} onChange={(event) => setBookStageFilter(event.target.value)}>
                 <option value="">全部階段</option>
-                {bookStages.map((stage) => (
+                {categoryOptions.map((stage) => (
                   <option key={stage} value={stage}>
                     {stage}
                   </option>

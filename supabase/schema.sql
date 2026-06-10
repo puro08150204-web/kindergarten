@@ -16,6 +16,16 @@ create table if not exists public.books (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists public.book_categories (
+  id uuid primary key default gen_random_uuid(),
+  name text not null unique,
+  created_at timestamptz not null default now()
+);
+
+insert into public.book_categories (name)
+values ('幼兒階段'), ('國小階段'), ('國高中階段')
+on conflict (name) do nothing;
+
 create table if not exists public.borrowers (
   id uuid primary key default gen_random_uuid(),
   borrower_last_name text not null,
@@ -60,10 +70,12 @@ before update on public.borrowers
 for each row execute function public.set_updated_at();
 
 alter table public.books enable row level security;
+alter table public.book_categories enable row level security;
 alter table public.borrowers enable row level security;
 alter table public.loans enable row level security;
 
 grant select, insert, update, delete on public.books to service_role;
+grant select, insert, update, delete on public.book_categories to service_role;
 grant select, insert, update, delete on public.borrowers to service_role;
 grant select, insert, update, delete on public.loans to service_role;
 grant select on public.books to anon;

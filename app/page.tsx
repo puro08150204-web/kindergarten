@@ -242,6 +242,7 @@ export default function HomePage() {
   const [catalogBooks, setCatalogBooks] = useState<Book[]>([]);
   const [publicLoans, setPublicLoans] = useState<LoanWithComputedStatus[]>([]);
   const [publicLoanMode, setPublicLoanMode] = useState<"active" | "overdue">("active");
+  const [categories, setCategories] = useState<string[]>(bookStages);
   const [query, setQuery] = useState("");
   const [catalogQuery, setCatalogQuery] = useState("");
   const [stage, setStage] = useState("");
@@ -278,6 +279,10 @@ export default function HomePage() {
   );
   const totalCatalogPages = Math.max(1, Math.ceil(catalogBooks.length / pageSize));
   const totalBorrowPages = Math.max(1, Math.ceil(books.length / pageSize));
+  const categoryOptions = useMemo(
+    () => Array.from(new Set([...categories, ...catalogBooks.map((book) => book.stage).filter(Boolean) as string[], ...books.map((book) => book.stage).filter(Boolean) as string[]])),
+    [books, catalogBooks, categories]
+  );
 
   async function loadBooks(nextQuery = query) {
     const params = new URLSearchParams({ status: "在架上" });
@@ -305,7 +310,14 @@ export default function HomePage() {
     setPublicLoans(data.loans ?? []);
   }
 
+  async function loadCategories() {
+    const response = await fetch("/api/categories");
+    const data = await response.json();
+    setCategories(data.categories ?? bookStages);
+  }
+
   useEffect(() => {
+    loadCategories();
     loadCatalogBooks("");
     loadBooks("");
     loadPublicLoans("active");
@@ -538,7 +550,7 @@ export default function HomePage() {
             <Field label="階段分類">
               <select className={inputClass} value={catalogStage} onChange={(event) => setCatalogStage(event.target.value)}>
                 <option value="">全部階段</option>
-                {bookStages.map((bookStage) => (
+                {categoryOptions.map((bookStage) => (
                   <option key={bookStage} value={bookStage}>
                     {bookStage}
                   </option>
@@ -613,7 +625,7 @@ export default function HomePage() {
             <Field label="階段分類">
               <select className={inputClass} value={stage} onChange={(event) => setStage(event.target.value)}>
                 <option value="">全部階段</option>
-                {bookStages.map((bookStage) => (
+                {categoryOptions.map((bookStage) => (
                   <option key={bookStage} value={bookStage}>
                     {bookStage}
                   </option>
