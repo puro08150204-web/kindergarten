@@ -333,6 +333,10 @@ export default function HomePage() {
     });
   }
 
+  function removeSelectedBook(id: string) {
+    setSelectedBookIds((current) => current.filter((bookId) => bookId !== id));
+  }
+
   const selectScannedBook = useCallback(async (scannedCode: string) => {
     const bookCode = scannedCode.trim();
     setScannerOpen(false);
@@ -659,8 +663,23 @@ export default function HomePage() {
               </button>
 
               {selectedBooks.length > 0 && (
-                <div className="rounded-md bg-white/70 p-3 text-sm text-ink">
-                  {selectedBooks.map((book) => book.title).join("、")}
+                <div className="grid gap-2 rounded-md bg-white/70 p-2 text-sm text-ink">
+                  {selectedBooks.map((book) => (
+                    <div key={book.id} className="flex items-center justify-between gap-2 rounded-md bg-white px-2 py-2">
+                      <span className="min-w-0">
+                        <span className="block truncate font-semibold">{book.title}</span>
+                        <span className="block text-xs text-ink/55">{book.book_code}</span>
+                      </span>
+                      <button
+                        className="tap inline-flex shrink-0 items-center gap-1 rounded-md border border-coral/30 px-2 py-1 text-xs font-bold text-coral"
+                        type="button"
+                        onClick={() => removeSelectedBook(book.id)}
+                      >
+                        <X size={14} />
+                        取消
+                      </button>
+                    </div>
+                  ))}
                 </div>
               )}
 
