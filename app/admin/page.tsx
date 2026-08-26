@@ -1,6 +1,6 @@
 "use client";
 
-import { Download, Edit3, FileUp, LogOut, Plus, QrCode, RotateCcw, Save, Search, Trash2, X } from "lucide-react";
+import { BookOpen, Download, Edit3, FileUp, LogOut, Plus, QrCode, RotateCcw, Save, Search, Trash2, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { Badge, Button, Field, Notice, inputClass } from "@/components/ui";
@@ -50,6 +50,8 @@ export default function AdminPage() {
   const [qrBook, setQrBook] = useState<Book | null>(null);
   const [message, setMessage] = useState<Message>(null);
   const [loading, setLoading] = useState(false);
+  const [adminView, setAdminView] = useState<"books" | "loans">("books");
+  const [bookDetailsOpen, setBookDetailsOpen] = useState(false);
 
   const paginatedBooks = useMemo(
     () => books.slice((bookPage - 1) * pageSize, bookPage * pageSize),
@@ -93,6 +95,8 @@ export default function AdminPage() {
   }, []);
 
   function editBook(book: Book) {
+    setAdminView("books");
+    setBookDetailsOpen(true);
     setEditingId(book.id);
     setForm({
       status: book.status || "在架上",
@@ -122,6 +126,7 @@ export default function AdminPage() {
       if (!response.ok) throw new Error(data.error);
       setForm(emptyBook);
       setEditingId(null);
+      setBookDetailsOpen(false);
       await loadBooks();
       setMessage({ tone: "good", text: editingId ? "書籍已更新。" : "書籍已新增。" });
     } catch (error) {
@@ -317,7 +322,28 @@ export default function AdminPage() {
 
       {message && <Notice tone={message.tone}>{message.text}</Notice>}
 
-      <div className="mt-4 grid items-start gap-4 lg:grid-cols-[300px_minmax(0,1fr)]">
+      <nav className="mt-4 grid grid-cols-2 gap-2 rounded-md bg-white p-1.5 shadow-soft" aria-label="後台功能">
+        <button
+          type="button"
+          className={`tap inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-bold transition ${adminView === "books" ? "bg-leaf text-white shadow-sm" : "text-ink/65 hover:bg-ink/5"}`}
+          aria-current={adminView === "books" ? "page" : undefined}
+          onClick={() => setAdminView("books")}
+        >
+          <BookOpen size={18} />
+          書籍管理
+        </button>
+        <button
+          type="button"
+          className={`tap inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-bold transition ${adminView === "loans" ? "bg-leaf text-white shadow-sm" : "text-ink/65 hover:bg-ink/5"}`}
+          aria-current={adminView === "loans" ? "page" : undefined}
+          onClick={() => setAdminView("loans")}
+        >
+          <RotateCcw size={18} />
+          借閱管理
+        </button>
+      </nav>
+
+      {adminView === "books" && <div className="mt-4 grid items-start gap-4 lg:grid-cols-[300px_minmax(0,1fr)]">
         <section className="grid content-start gap-4">
           <div className="grid content-start gap-3 rounded-md bg-white p-4 shadow-soft">
             <h2 className="text-lg font-bold text-ink">{editingId ? "修改書籍" : "新增書籍"}</h2>
@@ -340,78 +366,71 @@ export default function AdminPage() {
                 ))}
               </select>
             </Field>
-            <Field label="新增分類">
-              <div className="grid gap-2">
-                <input
-                  className={inputClass}
-                  value={newCategory}
-                  placeholder="例如：成人教養、英文繪本"
-                  onChange={(event) => setNewCategory(event.target.value)}
-                />
-                <Button variant="secondary" disabled={loading || !newCategory.trim()} onClick={addCategory}>
-                  <Plus size={18} />
-                  新增分類
-                </Button>
-              </div>
-            </Field>
-            <div className="grid gap-2" aria-label="分類管理">
-              <span className="text-sm font-medium text-ink">管理分類</span>
-              <div className="grid gap-2">
-                {categories.map((category) => (
-                  <div key={category} className="flex items-center justify-between gap-2 rounded-md border border-ink/10 bg-sky/10 px-3 py-2">
-                    <span className="min-w-0 truncate text-sm text-ink">{category}</span>
-                    <button
-                      type="button"
-                      className="tap inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-sm font-semibold text-coral transition hover:bg-coral/10 disabled:cursor-not-allowed disabled:opacity-50"
-                      disabled={loading}
-                      aria-label={`刪除分類 ${category}`}
-                      onClick={() => deleteCategory(category)}
-                    >
-                      <Trash2 size={16} aria-hidden="true" />
-                      刪除
-                    </button>
+            <details className="rounded-md border border-ink/10 bg-ink/[0.02] p-3">
+              <summary className="cursor-pointer text-sm font-semibold text-leaf">分類設定</summary>
+              <div className="mt-3 grid gap-3">
+                <Field label="新增分類">
+                  <div className="grid gap-2">
+                    <input
+                      className={inputClass}
+                      value={newCategory}
+                      placeholder="例如：成人教養、英文繪本"
+                      onChange={(event) => setNewCategory(event.target.value)}
+                    />
+                    <Button variant="secondary" disabled={loading || !newCategory.trim()} onClick={addCategory}>
+                      <Plus size={18} />
+                      新增分類
+                    </Button>
                   </div>
-                ))}
+                </Field>
+                <div className="grid gap-2" aria-label="分類管理">
+                  {categories.map((category) => (
+                    <div key={category} className="flex items-center justify-between gap-2 rounded-md border border-ink/10 bg-white px-3 py-2">
+                      <span className="min-w-0 truncate text-sm text-ink">{category}</span>
+                      <button
+                        type="button"
+                        className="tap inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-sm font-semibold text-coral transition hover:bg-coral/10 disabled:cursor-not-allowed disabled:opacity-50"
+                        disabled={loading}
+                        aria-label={`刪除分類 ${category}`}
+                        onClick={() => deleteCategory(category)}
+                      >
+                        <Trash2 size={16} aria-hidden="true" />
+                        刪除
+                      </button>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
+            </details>
             <Field label="書名">
               <input className={inputClass} value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} />
             </Field>
-            <Field label="封面圖片網址">
-              <div className="grid gap-2">
-                <input
-                  className={inputClass}
-                  value={form.cover_image_url}
-                  placeholder="可貼圖片網址，或按下方自動查封面"
-                  onChange={(event) => setForm({ ...form, cover_image_url: event.target.value })}
-                />
-                <Button variant="secondary" disabled={loading} onClick={findCoverForForm}>
-                  自動查封面
-                </Button>
-                {form.cover_image_url && (
-                  <img
-                    alt={`${form.title || "書籍"}封面`}
-                    className="h-28 w-20 rounded-md border border-ink/10 bg-ink/5 object-cover"
-                    src={form.cover_image_url}
-                  />
-                )}
+            <details
+              className="rounded-md border border-ink/10 bg-ink/[0.02] p-3"
+              open={bookDetailsOpen}
+              onToggle={(event) => setBookDetailsOpen(event.currentTarget.open)}
+            >
+              <summary className="cursor-pointer text-sm font-semibold text-leaf">更多書籍資料</summary>
+              <div className="mt-3 grid gap-3">
+                <Field label="封面圖片網址">
+                  <div className="grid gap-2">
+                    <input
+                      className={inputClass}
+                      value={form.cover_image_url}
+                      placeholder="可貼圖片網址，或按下方自動查封面"
+                      onChange={(event) => setForm({ ...form, cover_image_url: event.target.value })}
+                    />
+                    <Button variant="secondary" disabled={loading} onClick={findCoverForForm}>自動查封面</Button>
+                    {form.cover_image_url && <img alt={`${form.title || "書籍"}封面`} className="h-28 w-20 rounded-md border border-ink/10 bg-ink/5 object-cover" src={form.cover_image_url} />}
+                  </div>
+                </Field>
+                <Field label="出版社"><input className={inputClass} value={form.publisher} onChange={(event) => setForm({ ...form, publisher: event.target.value })} /></Field>
+                <Field label="出版日期"><input type="date" className={inputClass} value={form.published_date} onChange={(event) => setForm({ ...form, published_date: event.target.value })} /></Field>
+                <Field label="作者"><input className={inputClass} value={form.author} onChange={(event) => setForm({ ...form, author: event.target.value })} /></Field>
+                <Field label="譯者"><input className={inputClass} value={form.translator} onChange={(event) => setForm({ ...form, translator: event.target.value })} /></Field>
+                <Field label="關鍵字"><textarea className={`${inputClass} min-h-24`} value={form.keywords} onChange={(event) => setForm({ ...form, keywords: event.target.value })} /></Field>
               </div>
-            </Field>
-            <Field label="出版社">
-              <input className={inputClass} value={form.publisher} onChange={(event) => setForm({ ...form, publisher: event.target.value })} />
-            </Field>
-            <Field label="出版日期">
-              <input type="date" className={inputClass} value={form.published_date} onChange={(event) => setForm({ ...form, published_date: event.target.value })} />
-            </Field>
-            <Field label="作者">
-              <input className={inputClass} value={form.author} onChange={(event) => setForm({ ...form, author: event.target.value })} />
-            </Field>
-            <Field label="譯者">
-              <input className={inputClass} value={form.translator} onChange={(event) => setForm({ ...form, translator: event.target.value })} />
-            </Field>
-            <Field label="關鍵字">
-              <textarea className={`${inputClass} min-h-24`} value={form.keywords} onChange={(event) => setForm({ ...form, keywords: event.target.value })} />
-            </Field>
+            </details>
             <div className="grid grid-cols-2 gap-2">
               <Button disabled={loading} onClick={saveBook}>
                 {editingId ? <Save size={18} /> : <Plus size={18} />}
@@ -422,6 +441,7 @@ export default function AdminPage() {
                 onClick={() => {
                   setForm(emptyBook);
                   setEditingId(null);
+                  setBookDetailsOpen(false);
                 }}
               >
                 清除
@@ -429,14 +449,14 @@ export default function AdminPage() {
             </div>
           </div>
 
-          <div className="grid content-start gap-3 rounded-md bg-white p-4 shadow-soft">
-            <h2 className="text-lg font-bold text-ink">批次匯入既有清單</h2>
-            <label className="tap inline-flex cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed border-leaf/[0.45] bg-sky/[0.35] px-4 py-3 text-sm font-semibold text-ink">
+          <details className="rounded-md bg-white p-4 shadow-soft">
+            <summary className="cursor-pointer text-sm font-bold text-ink">從 Excel 批次匯入</summary>
+            <label className="tap mt-3 inline-flex cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed border-leaf/[0.45] bg-sky/[0.35] px-4 py-3 text-sm font-semibold text-ink">
               <FileUp size={18} />
               選擇 Excel 檔
               <input className="sr-only" type="file" accept=".xlsx,.xls" onChange={(event) => importExcel(event.target.files?.[0])} />
             </label>
-          </div>
+          </details>
         </section>
 
         <section className="grid content-start gap-4">
@@ -519,7 +539,10 @@ export default function AdminPage() {
             </div>
           </div>
 
-          <div className="grid gap-3 rounded-md bg-white p-4 shadow-soft">
+        </section>
+      </div>}
+
+      {adminView === "loans" && <section className="mt-4 grid gap-3 rounded-md bg-white p-4 shadow-soft">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h2 className="text-lg font-bold text-ink">借閱紀錄</h2>
               <Button variant="secondary" onClick={exportLoansCsv}>
@@ -566,9 +589,7 @@ export default function AdminPage() {
                 </article>
               ))}
             </div>
-          </div>
-        </section>
-      </div>
+      </section>}
 
       {qrBook && (
         <div className="qr-print-layer fixed inset-0 z-50 grid place-items-center bg-ink/70 px-4 py-6 print:static print:bg-white print:p-0">
