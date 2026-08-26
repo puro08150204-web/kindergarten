@@ -19,7 +19,7 @@ export async function GET() {
     if (error) throw error;
 
     return NextResponse.json({
-      categories: uniqueCategories([...defaultCategories, ...(data ?? []).map((category) => category.name)])
+      categories: uniqueCategories((data ?? []).map((category) => category.name))
     });
   } catch (error) {
     if (isMissingSupabaseConfig(error) || (error instanceof Error && error.message.includes("book_categories"))) {
@@ -44,6 +44,39 @@ export async function POST(request: NextRequest) {
 
     if (error) throw error;
     return NextResponse.json({ category: data });
+  } catch (error) {
+    return serverError(error);
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const payload = await request.json();
+    const name = payload.name?.trim();
+    if (!name) return badRequest("請指定要刪除的分類。");
+
+    const supabase = getAdminSupabase();
+    const { count, error: booksError } = await supabase
+      .from("books")
+      .select("id", { count: "exact", head: true })
+      .eq("stage", name);
+
+    if (booksError) throw booksError;
+    if ((count ?? 0) > 0) {
+      return badRequest(`無法刪除「${name}」：目前有 ${count} 本書使用此分類。請先將這些書改為其他分類或未分類。`, 409);
+    }
+
+    const { data, error } = await supabase
+      .from("book_categories")
+      .delete()
+      .eq("name", name)
+      .select("name")
+      .maybeSingle();
+
+    if (error) throw error;
+    if (!data) return badRequest("找不到這個分類，可能已被刪除。", 404);
+
+    return NextResponse.json({ ok: true, category: data });
   } catch (error) {
     return serverError(error);
   }

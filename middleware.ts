@@ -25,6 +25,7 @@ export function middleware(request: NextRequest) {
 
   const protectsBookMutation =
     pathname.startsWith("/api/import") ||
+    (pathname.startsWith("/api/categories") && request.method !== "GET") ||
     (pathname.startsWith("/api/books") && request.method !== "GET");
 
   if (protectsBookMutation && !hasAdminAccess(request)) {
@@ -35,5 +36,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/api/admin/:path*", "/api/books/:path*", "/api/import/:path*"]
+  matcher: ["/admin/:path*", "/api/admin/:path*", "/api/books/:path*", "/api/categories/:path*", "/api/import/:path*"]
 };

@@ -156,6 +156,29 @@ export default function AdminPage() {
     }
   }
 
+  async function deleteCategory(name: string) {
+    if (!confirm(`確定要刪除分類「${name}」？\n\n若已有書籍使用此分類，系統會阻止刪除並保留原資料。`)) return;
+    setLoading(true);
+    setMessage(null);
+    try {
+      const response = await fetch("/api/categories", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error);
+      await loadCategories();
+      if (form.stage === name) setForm((current) => ({ ...current, stage: "" }));
+      if (bookStageFilter === name) setBookStageFilter("");
+      setMessage({ tone: "good", text: `已刪除分類「${name}」。` });
+    } catch (error) {
+      setMessage({ tone: "bad", text: error instanceof Error ? error.message : "刪除分類失敗。" });
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function findCoverForForm() {
     if (!form.title.trim()) {
       setMessage({ tone: "bad", text: "請先輸入書名，再查封面。" });
@@ -331,6 +354,26 @@ export default function AdminPage() {
                 </Button>
               </div>
             </Field>
+            <div className="grid gap-2" aria-label="分類管理">
+              <span className="text-sm font-medium text-ink">管理分類</span>
+              <div className="grid gap-2">
+                {categories.map((category) => (
+                  <div key={category} className="flex items-center justify-between gap-2 rounded-md border border-ink/10 bg-sky/10 px-3 py-2">
+                    <span className="min-w-0 truncate text-sm text-ink">{category}</span>
+                    <button
+                      type="button"
+                      className="tap inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-sm font-semibold text-coral transition hover:bg-coral/10 disabled:cursor-not-allowed disabled:opacity-50"
+                      disabled={loading}
+                      aria-label={`刪除分類 ${category}`}
+                      onClick={() => deleteCategory(category)}
+                    >
+                      <Trash2 size={16} aria-hidden="true" />
+                      刪除
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
             <Field label="書名">
               <input className={inputClass} value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} />
             </Field>
