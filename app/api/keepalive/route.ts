@@ -4,8 +4,6 @@ import { serverError } from "@/lib/errors";
 
 export const dynamic = "force-dynamic";
 
-const TABLES_TO_PING = ["books", "loans", "borrowers", "book_categories"];
-
 export async function GET(request: Request) {
   try {
     const secret = process.env.CRON_SECRET;
@@ -16,23 +14,26 @@ export async function GET(request: Request) {
     }
 
     const supabase = getAdminSupabase();
-    let lastError = "";
+    const checks = await Promise.all([
+      supabase.from("books").select("id").limit(1),
+      supabase.from("loans").select("id").limit(1),
+      supabase.from("borrowers").select("id").limit(1),
+      supabase.from("book_categories").select("id").limit(1)
+    ]);
 
-    for (const table of TABLES_TO_PING) {
-      const { error } = await supabase.from(table).select("id").limit(1);
+    const errors = checks
+      .map((result, index) => result.error && `query ${index + 1}: ${result.error.message}`)
+      .filter(Boolean);
 
-      if (!error) {
-        return NextResponse.json({
-          ok: true,
-          table,
-          checkedAt: new Date().toISOString()
-        });
-      }
-
-      lastError = `${table}: ${error.message}`;
+    if (errors.length > 0) {
+      throw new Error(errors.join("; "));
     }
 
-    throw new Error(lastError || "Supabase keepalive failed");
+    return NextResponse.json({
+      ok: true,
+      queries: checks.length,
+      checkedAt: new Date().toISOString()
+    });
   } catch (error) {
     return serverError(error);
   }
