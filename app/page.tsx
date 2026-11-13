@@ -1,6 +1,6 @@
 "use client";
 
-import { BookOpen, Camera, Check, ChevronDown, ClipboardList, RotateCcw, Search, X } from "lucide-react";
+import { Bell, BookOpen, Camera, Check, ChevronDown, ClipboardList, RefreshCw, RotateCcw, Search, X } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Badge, Button, Field, Notice, inputClass } from "@/components/ui";
@@ -263,6 +263,8 @@ export default function HomePage() {
   const [returnBorrowerName, setReturnBorrowerName] = useState("");
   const [returnLoans, setReturnLoans] = useState<LoanWithComputedStatus[]>([]);
   const [selectedLoanIds, setSelectedLoanIds] = useState<string[]>([]);
+  const [reserveBookId, setReserveBookId] = useState<string | null>(null);
+  const [reserveEmail, setReserveEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<Message>(null);
   const [borrowSuccess, setBorrowSuccess] = useState<BorrowSuccess>(null);
@@ -473,9 +475,50 @@ export default function HomePage() {
       await searchReturns();
       await loadBooks();
       await loadPublicLoans();
-      setMessage({ tone: "good", text: "還書完成，書籍已回到在架上。" });
+      const notificationErrors = data.notification_errors ?? [];
+      if (notificationErrors.length > 0) {
+        setMessage({ tone: "bad", text: `還書已完成，但預約通知尚未寄出：${notificationErrors.join("；")}` });
+      } else {
+        setMessage({ tone: "good", text: data.notified > 0 ? `還書完成，已通知 ${data.notified} 位預約者。` : "還書完成，書籍已回到在架上。" });
+      }
     } catch (error) {
       setMessage({ tone: "bad", text: error instanceof Error ? error.message : "還書失敗。" });
+      setLoading(false);
+    }
+  }
+
+  async function renewLoan(id: string) {
+    setLoading(true);
+    setMessage(null);
+    try {
+      const response = await fetch(`/api/loans/${id}/renew`, { method: "POST" });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error);
+      await searchReturns();
+      setMessage({ tone: "good", text: `續借成功，新的到期日為 ${formatTaiwanDate(data.due_at)}。` });
+    } catch (error) {
+      setMessage({ tone: "bad", text: error instanceof Error ? error.message : "續借失敗。" });
+      setLoading(false);
+    }
+  }
+
+  async function submitReservation(bookId: string) {
+    setLoading(true);
+    setMessage(null);
+    try {
+      const response = await fetch("/api/reservations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ book_id: bookId, email: reserveEmail })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error);
+      setReserveBookId(null);
+      setReserveEmail("");
+      setMessage({ tone: "good", text: "預約成功，書籍歸還後會寄信通知。" });
+    } catch (error) {
+      setMessage({ tone: "bad", text: error instanceof Error ? error.message : "預約失敗。" });
+    } finally {
       setLoading(false);
     }
   }
@@ -803,7 +846,8 @@ export default function HomePage() {
 
           <div className="grid gap-3">
             {returnLoans.map((loan) => (
-              <label key={loan.id} className="flex gap-3 rounded-md bg-white p-4 shadow-soft">
+              <article key={loan.id} className="grid gap-3 rounded-md bg-white p-4 shadow-soft">
+                <label className="flex gap-3">
                 <input
                   className="mt-1 h-5 w-5"
                   type="checkbox"
@@ -824,7 +868,12 @@ export default function HomePage() {
                   </span>
                   <Badge tone={loan.loan_status === "逾期" ? "bad" : "warn"}>{loan.loan_status}</Badge>
                 </span>
-              </label>
+                </label>
+                <Button variant="secondary" disabled={loading} onClick={() => renewLoan(loan.id)}>
+                  <RefreshCw size={16} />
+                  續借 30 天
+                </Button>
+              </article>
             ))}
           </div>
           {returnLoans.length > 0 && (
@@ -877,6 +926,31 @@ export default function HomePage() {
                 <p className="text-sm text-ink/60">
                   借閱 {formatTaiwanDate(loan.borrowed_at)} · 到期 {formatTaiwanDate(loan.due_at)}
                 </p>
+                {reserveBookId === loan.book_id ? (
+                  <div className="grid gap-2 rounded-md bg-sky/20 p-3">
+                    <Field label="預約通知 Email">
+                      <input
+                        className={inputClass}
+                        type="email"
+                        value={reserveEmail}
+                        placeholder="name@example.com"
+                        onChange={(event) => setReserveEmail(event.target.value)}
+                      />
+                    </Field>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button disabled={loading || !reserveEmail.trim()} onClick={() => submitReservation(loan.book_id)}>
+                        <Bell size={16} />
+                        確認預約
+                      </Button>
+                      <Button variant="secondary" onClick={() => { setReserveBookId(null); setReserveEmail(""); }}>取消</Button>
+                    </div>
+                  </div>
+                ) : (
+                  <Button variant="secondary" onClick={() => { setReserveBookId(loan.book_id); setReserveEmail(""); }}>
+                    <Bell size={16} />
+                    預約此書
+                  </Button>
+                )}
               </article>
             ))}
             {publicLoans.length === 0 && (

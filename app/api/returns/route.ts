@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { isOverdue } from "@/lib/dates";
 import { badRequest, serverError } from "@/lib/errors";
 import { getAdminSupabase } from "@/lib/supabase";
+import { sendAvailabilityEmail } from "@/lib/email";
 
 export async function GET(request: NextRequest) {
   try {
@@ -49,7 +50,7 @@ export async function POST(request: NextRequest) {
     const supabase = getAdminSupabase();
     const { data: loans, error: findError } = await supabase
       .from("loans")
-      .select("id,book_id")
+      .select("id,book_id,books(title)")
       .in("id", loanIds)
       .is("returned_at", null);
 
@@ -72,7 +73,50 @@ export async function POST(request: NextRequest) {
       if (bookError) throw bookError;
     }
 
-    return NextResponse.json({ ok: true });
+    let notified = 0;
+    const notificationErrors: string[] = [];
+
+    for (const loan of loans ?? []) {
+      const { data: reservation, error: reservationError } = await supabase
+        .from("book_reservations")
+        .select("id,email")
+        .eq("book_id", loan.book_id)
+        .eq("status", "waiting")
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+
+      if (reservationError) {
+        notificationErrors.push(reservationError.message);
+        continue;
+      }
+      if (!reservation) continue;
+
+      const bookRelation = loan.books as { title?: string } | Array<{ title?: string }> | null;
+      const bookTitle = Array.isArray(bookRelation) ? bookRelation[0]?.title : bookRelation?.title;
+      const result = await sendAvailabilityEmail({
+        to: reservation.email,
+        bookTitle: bookTitle ?? "預約書籍"
+      });
+
+      if (!result.sent) {
+        notificationErrors.push(result.error ?? "寄信失敗。");
+        continue;
+      }
+
+      const { error: updateReservationError } = await supabase
+        .from("book_reservations")
+        .update({ status: "notified", notified_at: new Date().toISOString() })
+        .eq("id", reservation.id);
+
+      if (updateReservationError) {
+        notificationErrors.push(updateReservationError.message);
+      } else {
+        notified += 1;
+      }
+    }
+
+    return NextResponse.json({ ok: true, notified, notification_errors: notificationErrors });
   } catch (error) {
     return serverError(error);
   }

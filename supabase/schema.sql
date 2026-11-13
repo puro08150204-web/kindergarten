@@ -45,6 +45,22 @@ create table if not exists public.loans (
   created_at timestamptz not null default now()
 );
 
+create table if not exists public.book_reservations (
+  id uuid primary key default gen_random_uuid(),
+  book_id uuid not null references public.books(id) on delete cascade,
+  email text not null,
+  status text not null default 'waiting' check (status in ('waiting', 'notified', 'cancelled')),
+  created_at timestamptz not null default now(),
+  notified_at timestamptz
+);
+
+create unique index if not exists book_reservations_waiting_unique
+on public.book_reservations (book_id, lower(email))
+where status = 'waiting';
+
+create index if not exists book_reservations_queue_idx
+on public.book_reservations (book_id, status, created_at);
+
 create index if not exists books_search_idx on public.books using gin (
   to_tsvector('simple', coalesce(title, '') || ' ' || coalesce(book_code, '') || ' ' || coalesce(stage, '') || ' ' || coalesce(keywords, ''))
 );
@@ -73,11 +89,13 @@ alter table public.books enable row level security;
 alter table public.book_categories enable row level security;
 alter table public.borrowers enable row level security;
 alter table public.loans enable row level security;
+alter table public.book_reservations enable row level security;
 
 grant select, insert, update, delete on public.books to service_role;
 grant select, insert, update, delete on public.book_categories to service_role;
 grant select, insert, update, delete on public.borrowers to service_role;
 grant select, insert, update, delete on public.loans to service_role;
+grant select, insert, update, delete on public.book_reservations to service_role;
 grant select on public.books to anon;
 
 create policy "Public can read books"

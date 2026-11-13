@@ -291,9 +291,28 @@ export default function AdminPage() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error);
       await Promise.all([loadBooks(), loadLoans()]);
-      setMessage({ tone: "good", text: "已完成手動還書。" });
+      const errors = data.notification_errors ?? [];
+      setMessage(errors.length > 0
+        ? { tone: "bad", text: `還書已完成，但預約通知尚未寄出：${errors.join("；")}` }
+        : { tone: "good", text: data.notified > 0 ? `已完成還書並通知 ${data.notified} 位預約者。` : "已完成手動還書。" });
     } catch (error) {
       setMessage({ tone: "bad", text: error instanceof Error ? error.message : "還書失敗。" });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function renewLoan(id: string) {
+    setLoading(true);
+    setMessage(null);
+    try {
+      const response = await fetch(`/api/loans/${id}/renew`, { method: "POST" });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error);
+      await loadLoans();
+      setMessage({ tone: "good", text: `續借成功，新的到期日為 ${formatTaiwanDate(data.due_at)}。` });
+    } catch (error) {
+      setMessage({ tone: "bad", text: error instanceof Error ? error.message : "續借失敗。" });
     } finally {
       setLoading(false);
     }
@@ -588,10 +607,16 @@ export default function AdminPage() {
                     </p>
                   </div>
                   {!loan.returned_at && (
-                    <Button variant="secondary" disabled={loading} onClick={() => returnLoan(loan.id)}>
-                      <RotateCcw size={16} />
-                      還書
-                    </Button>
+                    <div className="grid gap-2 sm:min-w-24">
+                      <Button variant="secondary" disabled={loading} onClick={() => renewLoan(loan.id)}>
+                        <RotateCcw size={16} />
+                        續借
+                      </Button>
+                      <Button variant="secondary" disabled={loading} onClick={() => returnLoan(loan.id)}>
+                        <RotateCcw size={16} />
+                        還書
+                      </Button>
+                    </div>
                   )}
                 </article>
               ))}
