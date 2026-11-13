@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { dueDateFromNow } from "@/lib/dates";
 import { badRequest, serverError } from "@/lib/errors";
 import { getAdminSupabase } from "@/lib/supabase";
+import { encodeBorrowerGroup, isBorrowerType } from "@/lib/borrowers";
 
 export async function POST(request: NextRequest) {
   try {
@@ -9,10 +10,14 @@ export async function POST(request: NextRequest) {
     const borrowerLastName = payload.borrower_last_name?.trim();
     const borrowerLineId = payload.borrower_line_id?.trim();
     const childClass = payload.child_class?.trim();
+    const borrowerType = payload.borrower_type;
     const bookIds = Array.isArray(payload.book_ids) ? payload.book_ids.filter(Boolean) : [];
 
-    if (!borrowerLastName || !borrowerLineId || !childClass) {
-      return badRequest("請填寫姓名、Line ID 與最大小孩班級。");
+    if (!borrowerLastName || !borrowerLineId || !isBorrowerType(borrowerType)) {
+      return badRequest("請填寫姓名、Line ID 並選擇身份。");
+    }
+    if (borrowerType === "在校生家長" && !childClass) {
+      return badRequest("在校生家長請填寫最大小孩班級。");
     }
     if (bookIds.length === 0 || bookIds.length > 3) {
       return badRequest("一次需選擇 1 到 3 本書。");
@@ -47,7 +52,7 @@ export async function POST(request: NextRequest) {
         {
           borrower_last_name: borrowerLastName,
           borrower_line_id: borrowerLineId,
-          child_class: childClass
+          child_class: encodeBorrowerGroup(borrowerType, childClass ?? "")
         },
         { onConflict: "borrower_line_id" }
       )

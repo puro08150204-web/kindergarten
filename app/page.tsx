@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Badge, Button, Field, Notice, inputClass } from "@/components/ui";
 import { formatTaiwanDate } from "@/lib/dates";
+import { borrowerTypes } from "@/lib/borrowers";
 import type { Book, LoanWithComputedStatus } from "@/lib/types";
 
 type Message = { tone: "good" | "bad"; text: string } | null;
@@ -256,6 +257,7 @@ export default function HomePage() {
   const [borrower, setBorrower] = useState({
     borrower_last_name: "",
     borrower_line_id: "",
+    borrower_type: "",
     child_class: ""
   });
   const [returnBorrowerName, setReturnBorrowerName] = useState("");
@@ -427,7 +429,7 @@ export default function HomePage() {
       });
       setSelectedBookIds([]);
       setBorrowPanelOpen(false);
-      setBorrower({ borrower_last_name: "", borrower_line_id: "", child_class: "" });
+      setBorrower({ borrower_last_name: "", borrower_line_id: "", borrower_type: "", child_class: "" });
       await loadBooks();
       await loadPublicLoans();
       setMessage({ tone: "good", text: "借閱成功。" });
@@ -695,13 +697,37 @@ export default function HomePage() {
                       onChange={(event) => setBorrower({ ...borrower, borrower_line_id: event.target.value })}
                     />
                   </Field>
-                  <Field label="最大小孩班級">
-                    <input className={inputClass} value={borrower.child_class} onChange={(event) => setBorrower({ ...borrower, child_class: event.target.value })} />
+                  <Field label="身份">
+                    <select
+                      className={inputClass}
+                      value={borrower.borrower_type}
+                      onChange={(event) => setBorrower({ ...borrower, borrower_type: event.target.value, child_class: "" })}
+                    >
+                      <option value="">請選擇身份</option>
+                      {borrowerTypes.map((type) => (
+                        <option key={type} value={type}>{type}</option>
+                      ))}
+                    </select>
                   </Field>
+                  {borrower.borrower_type === "在校生家長" && (
+                    <Field label="最大小孩班級">
+                      <input className={inputClass} value={borrower.child_class} onChange={(event) => setBorrower({ ...borrower, child_class: event.target.value })} />
+                    </Field>
+                  )}
                 </div>
               )}
 
-              <Button disabled={loading || selectedBookIds.length === 0} onClick={submitBorrow}>
+              <Button
+                disabled={
+                  loading ||
+                  selectedBookIds.length === 0 ||
+                  !borrower.borrower_last_name.trim() ||
+                  !borrower.borrower_line_id.trim() ||
+                  !borrower.borrower_type ||
+                  (borrower.borrower_type === "在校生家長" && !borrower.child_class.trim())
+                }
+                onClick={submitBorrow}
+              >
                 送出借閱
               </Button>
             </div>

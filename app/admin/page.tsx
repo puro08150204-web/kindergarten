@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { Badge, Button, Field, Notice, inputClass } from "@/components/ui";
 import { formatTaiwanDate, toDateInputValue } from "@/lib/dates";
+import { parseBorrowerGroup } from "@/lib/borrowers";
 import type { Book, LoanWithComputedStatus } from "@/lib/types";
 
 const emptyBook = {
@@ -250,18 +251,22 @@ export default function AdminPage() {
   }
 
   function exportLoansCsv() {
-    const headers = ["狀態", "索書編號", "書名", "姓名", "班級", "Line ID", "借閱日", "到期日", "歸還日"];
-    const rows = loans.map((loan) => [
-      loan.loan_status,
-      loan.books?.book_code ?? "",
-      loan.books?.title ?? "",
-      loan.borrowers?.borrower_last_name ?? "",
-      loan.borrowers?.child_class ?? "",
-      loan.borrowers?.borrower_line_id ?? "",
-      formatTaiwanDate(loan.borrowed_at),
-      formatTaiwanDate(loan.due_at),
-      formatTaiwanDate(loan.returned_at)
-    ]);
+    const headers = ["狀態", "索書編號", "書名", "姓名", "身份", "班級", "Line ID", "借閱日", "到期日", "歸還日"];
+    const rows = loans.map((loan) => {
+      const group = parseBorrowerGroup(loan.borrowers?.child_class);
+      return [
+        loan.loan_status,
+        loan.books?.book_code ?? "",
+        loan.books?.title ?? "",
+        loan.borrowers?.borrower_last_name ?? "",
+        group.type,
+        group.childClass,
+        loan.borrowers?.borrower_line_id ?? "",
+        formatTaiwanDate(loan.borrowed_at),
+        formatTaiwanDate(loan.due_at),
+        formatTaiwanDate(loan.returned_at)
+      ];
+    });
     const csv = [headers, ...rows]
       .map((row) => row.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(","))
       .join("\n");
@@ -574,7 +579,9 @@ export default function AdminPage() {
                     </div>
                     <h3 className="font-bold text-ink">{loan.books?.title}</h3>
                     <p className="text-sm text-ink/65">
-                      {loan.borrowers?.borrower_last_name} 家長 · {loan.borrowers?.child_class} · {loan.borrowers?.borrower_line_id}
+                      {loan.borrowers?.borrower_last_name} · {parseBorrowerGroup(loan.borrowers?.child_class).type}
+                      {parseBorrowerGroup(loan.borrowers?.child_class).childClass ? ` · ${parseBorrowerGroup(loan.borrowers?.child_class).childClass}` : ""}
+                      {loan.borrowers?.borrower_line_id ? ` · ${loan.borrowers.borrower_line_id}` : ""}
                     </p>
                     <p className="text-sm text-ink/60">
                       借閱 {formatTaiwanDate(loan.borrowed_at)} · 到期 {formatTaiwanDate(loan.due_at)}
